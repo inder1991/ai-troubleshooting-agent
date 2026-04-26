@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["python_symbols", "frontend_exports", "adrs"],
+  "properties": {
+    "python_symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "symbol", "kind", "line", "has_docstring"],
+        "properties": {
+          "file": {"type": "string"},
+          "symbol": {"type": "string"},
+          "kind": {"type": "string"},
+          "line": {"type": "integer"},
+          "has_docstring": {"type": "boolean"}
+        }
+      }
+    },
+    "frontend_exports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "symbol", "kind", "line", "has_jsdoc"],
+        "properties": {
+          "file": {"type": "string"},
+          "symbol": {"type": "string"},
+          "kind": {"type": "string"},
+          "line": {"type": "integer"},
+          "has_jsdoc": {"type": "boolean"}
+        }
+      }
+    },
+    "adrs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "title"],
+        "properties": {
+          "file": {"type": "string"},
+          "title": {"type": "string"}
+        }
+      }
+    }
+  }
+}

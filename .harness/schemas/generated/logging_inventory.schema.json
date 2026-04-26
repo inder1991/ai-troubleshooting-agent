@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["structlog_processors", "tracing_initialized", "log_calls"],
+  "properties": {
+    "structlog_processors": {"type": "array", "items": {"type": "string"}},
+    "tracing_initialized": {"type": "boolean"},
+    "log_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "level", "event", "correlation_kwargs"],
+        "properties": {
+          "file": {"type": "string"},
+          "level": {"type": "string"},
+          "event": {"type": "string"},
+          "correlation_kwargs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

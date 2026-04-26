@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ui_primitives", "incident_critical_pages", "soft_warn_rules"],
+  "properties": {
+    "ui_primitives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "axe_test_present", "test_file"],
+        "properties": {
+          "name": {"type": "string"},
+          "axe_test_present": {"type": "boolean"},
+          "test_file": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "incident_critical_pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "e2e_spec_present", "spec_file"],
+        "properties": {
+          "name": {"type": "string"},
+          "e2e_spec_present": {"type": "boolean"},
+          "spec_file": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "soft_warn_rules": {"type": "array", "items": {"type": "string"}}
+  }
+}

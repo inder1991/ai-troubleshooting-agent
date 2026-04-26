@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ruff", "eslint", "commitlint"],
+  "properties": {
+    "ruff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["select", "ignore", "line_length"],
+      "properties": {
+        "select": {"type": "array", "items": {"type": "string"}},
+        "ignore": {"type": "array", "items": {"type": "string"}},
+        "line_length": {"type": ["integer", "null"]}
+      }
+    },
+    "eslint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plugins", "rule_count"],
+      "properties": {
+        "plugins": {"type": "array", "items": {"type": "string"}},
+        "rule_count": {"type": "integer"}
+      }
+    },
+    "commitlint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["extends", "config_file"],
+      "properties": {
+        "extends": {"type": "array", "items": {"type": "string"}},
+        "config_file": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "commitlint": {
+    "config_file": null,
+    "extends": []
+  },
+  "eslint": {
+    "plugins": [
+      "],\n    plugins: {\n      ",
+      "eslint-plugin-import",
+      "eslint-plugin-jsx-a11y"
+    ],
+    "rule_count": 4
+  },
+  "ruff": {
+    "ignore": [
+      "D100",
+      "D104",
+      "D203",
+      "D213"
+    ],
+    "line_length": null,
+    "select": [
+      "B",
+      "D",
+      "E",
+      "F",
+      "I"
+    ]
+  }
+}

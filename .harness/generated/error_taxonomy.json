@@ -1,0 +1,10 @@
+{
+  "exception_classes": [],
+  "result_aliases": [
+    {
+      "file": "backend/src/errors/result.py",
+      "name": "Result",
+      "value": "Union[Ok[T], Err[E]]"
+    }
+  ]
+}

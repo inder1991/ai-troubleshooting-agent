@@ -1,0 +1,6516 @@
+{
+  "log_calls": [
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "IMPACT & RISK ASSESSMENT",
+      "file": "backend/src/agents/agent3/assessors.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Campaign PR creation failed for %s: %s",
+      "file": "backend/src/agents/agent3/campaign_orchestrator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Campaign fix generation failed for %s: %s",
+      "file": "backend/src/agents/agent3/campaign_orchestrator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\nSelf-correcting validation issues...",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   Self-correction attempted (%s)",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "AGENT 3: PHASE 1 - VERIFICATION",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "AGENT 3: PHASE 2 - ACTION",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Built repo context: %d files in tree, %d source files included (%d chars)",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fix generated for %d files (%s)",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Resolved staging path: %s \u2192 %s",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Validation failed for %s, attempting self-correction...",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Multi-file parsing failed, assigning full output to primary file",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Target file not found in repo: %s",
+      "file": "backend/src/agents/agent3/fix_generator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Check passed: All necessary imports present",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Check passed: Circuit breaker implemented",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Check passed: Code structure maintained",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Check passed: Error handling added",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Check passed: Retry mechanism implemented",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Check passed: Timeout configured",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Peer review result: approved=%s confidence=%.0f%%",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Review concerns (%d): %s",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Starting cross-agent peer review",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM review failed, falling back to heuristics: %s",
+      "file": "backend/src/agents/agent3/reviewers.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\n\ud83d\udcc4 Generating PR Template...",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\n\ud83d\udcdd Creating Commit...",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\n\ud83d\udcdd Staging Changes...",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u2705 PR template generated",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\ud83c\udf33 PR STAGING: Branch Creation",
+      "file": "backend/src/agents/agent3/stagers.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\n\ud83d\udd0d Static Validation: Import Check",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\n\ud83d\udd0d Static Validation: Import Check (skipped for %s)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\n\ud83d\udd0d Static Validation: Linting (%s)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\n\ud83d\udd0d Static Validation: Syntax Check (%s)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  File not found: %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Linting (fallback): Issues found",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Linting fallback error: %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Linting: %d errors, %d warnings",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Linting: %s not installed (skipping)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Linting: %s not installed (skipping)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Linting: Could not write temp file \u2014 %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Linting: Error \u2014 %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Linting: Timeout (skipping)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Syntax: %s not installed (skipping)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Syntax: Could not write temp file \u2014 %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Syntax: Error \u2014 %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Syntax: Timeout (skipping)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Unknown language, skipping lint",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u26a0\ufe0f  Unknown language, skipping syntax check",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u2705 Linting (fallback): No issues found",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u2705 Linting: No issues found",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u2705 Syntax: Valid %s code",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u2705 Syntax: Valid Python code",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u274c Syntax: %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u274c Syntax: %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "   \u274c Syntax: %s",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\u2705 VALIDATION PASSED \u2014 %s code is valid",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\u274c VALIDATION FAILED \u2014 code needs corrections",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\ud83d\udee1\ufe0f  STATIC VALIDATION SUITE (%s)",
+      "file": "backend/src/agents/agent3/validators.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Assistant error: %s",
+      "file": "backend/src/agents/assistant/orchestrator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Causal analysis started",
+      "file": "backend/src/agents/causal_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Call 1 (Triage) complete",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Call 1 produced final answer \u2014 skipping Call 2",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Change agent complete",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Change agent context",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Change agent two-pass starting",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Extracted correlations from markdown",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Parsed JSON from code block",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Parsed JSON from raw text",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Parsing final response",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pre-fetch complete",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Two-pass change analysis complete",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "CI/CD pre-fetch failed for %s/%s: %s",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Code block JSON parse failed: %s",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse triage response",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pre-fetch CI/CD events failed: %s",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pre-fetch config diff failed: %s",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pre-fetch deployment history failed: %s",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Raw JSON parse failed: %s",
+      "file": "backend/src/agents/change_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert correlation complete",
+      "file": "backend/src/agents/cluster/alert_correlator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No problem alerts found",
+      "file": "backend/src/agents/cluster/alert_correlator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Causal firewall complete",
+      "file": "backend/src/agents/cluster/causal_firewall.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No pricing for %s/%s, using on-prem estimate",
+      "file": "backend/src/agents/cluster/cloud_pricing.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Critic validated %d hypotheses: %d valid, %d weakened, %d rejected",
+      "file": "backend/src/agents/cluster/critic_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Critic validated %d hypotheses: all passed",
+      "file": "backend/src/agents/cluster/critic_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool call %s failed: %s",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "_llm_analyze failed: %s",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget exhausted for ctrl_plane, using heuristic",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM did not call submit_domain_findings tool",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM iteration produced no tool calls \u2014 falling back",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Store write failed: %s",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool-calling failed for ctrl_plane, falling back to heuristic: %s",
+      "file": "backend/src/agents/cluster/ctrl_plane_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Built diagnostic graph: %d nodes, %d edges",
+      "file": "backend/src/agents/cluster/diagnostic_graph_builder.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Removed %d dangling edges",
+      "file": "backend/src/agents/cluster/diagnostic_graph_builder.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Matched %d patterns from %d signals",
+      "file": "backend/src/agents/cluster/failure_patterns.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pattern matcher: %d matches from %d signals",
+      "file": "backend/src/agents/cluster/failure_patterns.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Dispatch router: domains=%s, scope=%s",
+      "file": "backend/src/agents/cluster/graph.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Re-dispatch decision: domains=%s, count=%d",
+      "file": "backend/src/agents/cluster/graph.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "All domains denied by RBAC \u2014 no agents will run",
+      "file": "backend/src/agents/cluster/graph.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Proactive analysis failed: %s",
+      "file": "backend/src/agents/cluster/graph.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Guard scan formatted",
+      "file": "backend/src/agents/cluster/guard_formatter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Hallucination detected: finding references non-existent resource %s",
+      "file": "backend/src/agents/cluster/hallucination_detector.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Generated hypotheses: %d pattern, %d graph, %d correlation",
+      "file": "backend/src/agents/cluster/hypothesis_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Hypothesis engine: %d hypotheses ranked",
+      "file": "backend/src/agents/cluster/hypothesis_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Hypothesis engine: %d ranked, selection=%s, llm_needed=%s",
+      "file": "backend/src/agents/cluster/hypothesis_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No hypotheses generated from any source",
+      "file": "backend/src/agents/cluster/hypothesis_engine.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse diagnostic graph: %s",
+      "file": "backend/src/agents/cluster/issue_lifecycle.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Classified %d issues: %s",
+      "file": "backend/src/agents/cluster/issue_lifecycle.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Diagnostic graph has no nodes",
+      "file": "backend/src/agents/cluster/issue_lifecycle.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Empty or invalid diagnostic graph",
+      "file": "backend/src/agents/cluster/issue_lifecycle.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ELK search failed: %s",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prometheus DNS query failed: %s",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prometheus ingress query failed: %s",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool call %s failed: %s",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "_llm_analyze failed: %s",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget exhausted for network, using heuristic",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM did not call submit_domain_findings tool",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM iteration produced no tool calls \u2014 falling back",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Store write failed: %s",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool-calling failed for network, falling back to heuristic: %s",
+      "file": "backend/src/agents/cluster/network_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prometheus node CPU query failed: %s",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prometheus node memory query failed: %s",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool call %s failed: %s",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "_llm_analyze failed: %s",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget exhausted for node, using heuristic",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM did not call submit_domain_findings tool",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM iteration produced no tool calls \u2014 falling back",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Store write failed: %s",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool-calling failed for node, falling back to heuristic: %s",
+      "file": "backend/src/agents/cluster/node_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Evaluator for '%s' raised an exception",
+      "file": "backend/src/agents/cluster/proactive_analyzer.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to fetch data from '%s'",
+      "file": "backend/src/agents/cluster/proactive_analyzer.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ClusterClient has no method '%s', skipping",
+      "file": "backend/src/agents/cluster/proactive_analyzer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No evaluator for check_id='%s', skipping",
+      "file": "backend/src/agents/cluster/proactive_analyzer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "OpenShift route detection failed: %s",
+      "file": "backend/src/agents/cluster/prometheus_detector.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prometheus auto-detection failed: %s",
+      "file": "backend/src/agents/cluster/prometheus_detector.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool call %s failed: %s",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "_llm_analyze failed: %s",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget exhausted for rbac, using heuristic",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM did not call submit_domain_findings tool",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM iteration produced no tool calls \u2014 falling back",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Store write failed: %s",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool-calling failed for rbac, falling back to heuristic: %s",
+      "file": "backend/src/agents/cluster/rbac_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "RBAC probe for %s failed: %s \u2014 marking denied",
+      "file": "backend/src/agents/cluster/rbac_checker.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "RBAC probe: method %s not found on client, skipping",
+      "file": "backend/src/agents/cluster/rbac_checker.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Built %d scored recommendations (%d proactive, %d cost, %d workload)",
+      "file": "backend/src/agents/cluster/recommendation_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cluster call %s failed (attempt %d/%d), retrying in %.2fs: %s",
+      "file": "backend/src/agents/cluster/retry_utils.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Extracted %d signals from %d reports",
+      "file": "backend/src/agents/cluster/signal_normalizer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Signal normalizer: extracted %d signals from %d reports",
+      "file": "backend/src/agents/cluster/signal_normalizer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prometheus volume capacity bytes query failed: %s",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prometheus volume used bytes query failed: %s",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool call %s failed: %s",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "_llm_analyze failed: %s",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget exhausted for storage, using heuristic",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM did not call submit_domain_findings tool",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM iteration produced no tool calls \u2014 falling back",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Store write failed: %s",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool-calling failed for storage, falling back to heuristic: %s",
+      "file": "backend/src/agents/cluster/storage_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synthesizer causal reasoning prompt (%d chars)",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synthesizer causal reasoning result: %d chains",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synthesizer verdict prompt (%d chars)",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synthesizer verdict result: health=%s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM causal reasoning failed: %s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM verdict failed: %s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget low (%.0f%% remaining), using Haiku for causal reasoning",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget low (%.0f%% remaining), using Haiku for verdict",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse blast_radius from LLM, using defaults",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse causal chain: %s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse uncorrelated finding in domain: %s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM causal reasoning timed out after 30s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM verdict timed out after 30s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Low data completeness: %.0f%%",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No causal chains identified",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No immediate remediations in health report",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Store write failed: %s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synthesizer causal reasoning: LLM did not call submit_causal_analysis. Response: %s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synthesizer verdict: LLM did not call submit_verdict. Response: %s",
+      "file": "backend/src/agents/cluster/synthesizer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Using default age for %s",
+      "file": "backend/src/agents/cluster/temporal_analyzer.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Computed temporal attributes for %d signals, %d resources",
+      "file": "backend/src/agents/cluster/temporal_analyzer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse timestamp '%s': %s",
+      "file": "backend/src/agents/cluster/temporal_analyzer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool %s returned %d items in %dms",
+      "file": "backend/src/agents/cluster/tool_executor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool %s returned dict in %dms",
+      "file": "backend/src/agents/cluster/tool_executor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool call: %s(%s)",
+      "file": "backend/src/agents/cluster/tool_executor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool execution failed: %s(%s): %s (took %dms)",
+      "file": "backend/src/agents/cluster/tool_executor.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Dict result truncated: %d chars -> %d chars",
+      "file": "backend/src/agents/cluster/tool_executor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool %s result truncated: %d/%d items returned",
+      "file": "backend/src/agents/cluster/tool_executor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Invalid tool_input type: %s for %s",
+      "file": "backend/src/agents/cluster/tool_executor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Built fresh topology",
+      "file": "backend/src/agents/cluster/topology_resolver.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Using cached topology",
+      "file": "backend/src/agents/cluster/topology_resolver.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No cluster_client in config, skipping topology",
+      "file": "backend/src/agents/cluster/topology_resolver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Node %s starting (timeout=%ss)",
+      "file": "backend/src/agents/cluster/traced_node.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Node failed",
+      "file": "backend/src/agents/cluster/traced_node.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Node %s completed successfully in %dms",
+      "file": "backend/src/agents/cluster/traced_node.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Node timed out",
+      "file": "backend/src/agents/cluster/traced_node.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Generated %d workload recommendations from %d deployments",
+      "file": "backend/src/agents/cluster/workload_optimizer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "VPA listing unavailable (CRD may not be installed): %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to detect platform: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to get node OS info: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list API versions: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list BuildConfigs: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list HPAs: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list ImageStreams: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list MachineConfigPools: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list PDBs: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list PVCs: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list SCCs: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list TLS secrets: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list cluster operators: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list cluster roles: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list cronjobs: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list daemonsets: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list deployments: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list endpoints: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list events: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list jobs: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list machine sets: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list namespaces: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list network policies: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list nodes: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list pods: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list resource quotas: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list role bindings: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list roles: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list routes: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list service accounts: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list services: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to list statefulsets: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to get logs for %s/%s: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "HPA listing unavailable: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "NetworkPolicy listing unavailable: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "PDB listing unavailable: %s",
+      "file": "backend/src/agents/cluster_client/k8s_client.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Call 1 (Plan) complete",
+      "file": "backend/src/agents/code_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Call 1 produced final answer \u2014 skipping Call 2",
+      "file": "backend/src/agents/code_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Code agent complete",
+      "file": "backend/src/agents/code_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pre-fetch complete",
+      "file": "backend/src/agents/code_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Two-pass analysis complete",
+      "file": "backend/src/agents/code_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse plan response, treating as no additional data needed",
+      "file": "backend/src/agents/code_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pre-fetch: file tree failed: %s",
+      "file": "backend/src/agents/code_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/critic_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/critic_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Critic delta validation LLM error",
+      "file": "backend/src/agents/critic_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Critic started",
+      "file": "backend/src/agents/critic_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Verdict issued",
+      "file": "backend/src/agents/critic_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse Critic delta JSON response",
+      "file": "backend/src/agents/critic_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/cross_repo_tracer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Health agent error: %s",
+      "file": "backend/src/agents/database/graph.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Query agent error: %s",
+      "file": "backend/src/agents/database/graph.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Snapshot collection partial failure: %s",
+      "file": "backend/src/agents/database/graph.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Connection validation failed: %s",
+      "file": "backend/src/agents/database/graph_v2.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Health analyst failed: %s",
+      "file": "backend/src/agents/database/graph_v2.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Query analyst failed: %s",
+      "file": "backend/src/agents/database/graph_v2.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Schema analyst failed: %s",
+      "file": "backend/src/agents/database/graph_v2.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load parent context: %s",
+      "file": "backend/src/agents/database/graph_v2.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Permission check failed: %s",
+      "file": "backend/src/agents/database/graph_v2.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "explain_query failed for pid %s: %s",
+      "file": "backend/src/agents/database/graph_v2.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "pg_stat_statements check skipped: %s",
+      "file": "backend/src/agents/database/graph_v2.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM agent failed: %s",
+      "file": "backend/src/agents/database/llm_agents.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Free-text tool attempt",
+      "file": "backend/src/agents/database/llm_agents.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM agent timed out",
+      "file": "backend/src/agents/database/llm_agents.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Malformed report_findings: input is not a dict",
+      "file": "backend/src/agents/database/llm_agents.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "All agents timed out",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Heuristic %s failed: %s",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent failed: %s",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to emit health panel data: %s",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to fetch schema snapshot for panel data: %s",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to get table detail for %s: %s",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM agent %s failed: %s, using heuristic",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM agent %s unexpected error: %s, using heuristic",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unexpected error fetching schema snapshot: %s",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unexpected error getting table detail for %s: %s",
+      "file": "backend/src/agents/database/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to generate plan for finding %s: %s",
+      "file": "backend/src/agents/database/remediation_planner.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM synthesis failed, using deterministic fallback: %s",
+      "file": "backend/src/agents/database/synthesizer_llm.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/hypothesis_tracker.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/hypothesis_tracker.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/agents/hypothesis_tracker.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Blast radius computed",
+      "file": "backend/src/agents/impact_analyzer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Severity recommended",
+      "file": "backend/src/agents/impact_analyzer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "K8s agent two-pass starting",
+      "file": "backend/src/agents/k8s_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Phase 0a complete",
+      "file": "backend/src/agents/k8s_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Phase 0b complete",
+      "file": "backend/src/agents/k8s_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Two-pass K8s analysis complete",
+      "file": "backend/src/agents/k8s_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cluster unreachable",
+      "file": "backend/src/agents/k8s_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "K8s %s \u2014 refreshing SA token and retrying once",
+      "file": "backend/src/agents/k8s_client.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "K8sTokenWatcher poll failed",
+      "file": "backend/src/agents/k8s_token_watcher.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "K8sTokenWatcher: token reloaded",
+      "file": "backend/src/agents/k8s_token_watcher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "K8sTokenWatcher: token file missing",
+      "file": "backend/src/agents/k8s_token_watcher.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ES search failed",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Blast radius scan complete",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ES auth config",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ES search complete",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Index resolved",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Index resolved",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM analysis complete",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Log analysis complete",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Patterns grouped",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Service flow reconstructed",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Starting log analysis",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ES connection failed",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ES connection failed",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ES query rejected by safety middleware",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No connection_config passed to log_agent \u2014 ES requests will be unauthenticated",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Trace-ID ES query rejected by safety middleware",
+      "file": "backend/src/agents/log_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Baseline filter suppressed within-noise anomalies",
+      "file": "backend/src/agents/metrics_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Metrics agent complete",
+      "file": "backend/src/agents/metrics_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Metrics agent two-pass starting",
+      "file": "backend/src/agents/metrics_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Phase 0a complete",
+      "file": "backend/src/agents/metrics_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Phase 0b+c complete",
+      "file": "backend/src/agents/metrics_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Two-pass metrics analysis complete",
+      "file": "backend/src/agents/metrics_agent.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Network diagnostic graph compiled successfully",
+      "file": "backend/src/agents/network/graph.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to get NAT rules from %s: %s",
+      "file": "backend/src/agents/network/nat_resolver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool guard rejected: %s \u2014 %s",
+      "file": "backend/src/agents/network/orchestrator.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool execution failed: %s(%s) \u2014 %s",
+      "file": "backend/src/agents/network/tool_executor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_deploy_details failed for %s/%s: %s",
+      "file": "backend/src/agents/pipeline_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "list_recent_deploys failed for %s/%s: %s",
+      "file": "backend/src/agents/pipeline_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to force final answer",
+      "file": "backend/src/agents/react_base.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent completed",
+      "file": "backend/src/agents/react_base.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent started",
+      "file": "backend/src/agents/react_base.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Forced final answer produced",
+      "file": "backend/src/agents/react_base.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Iteration config resolved",
+      "file": "backend/src/agents/react_base.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool called",
+      "file": "backend/src/agents/react_base.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool result",
+      "file": "backend/src/agents/react_base.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Wrap-up nudge injected",
+      "file": "backend/src/agents/react_base.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget exhausted \u2014 forcing final answer",
+      "file": "backend/src/agents/react_base.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Early exit: infrastructure unavailable",
+      "file": "backend/src/agents/react_base.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Max iterations reached \u2014 forcing final answer",
+      "file": "backend/src/agents/react_base.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Retry %d/%d for %s after %s (delay %.1fs)",
+      "file": "backend/src/agents/retry.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Retry %d/%d for %s after HTTP %d (delay %.1fs)",
+      "file": "backend/src/agents/retry.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Could not emit phase_change event",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repo validation request failed for %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent failed",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent raised exception",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fix generation failed: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "metrics\u2194logs divergence check failed",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "record_coverage_gap failed",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "record_coverage_gap failed",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "tracing\u2194metrics divergence check failed",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent completed",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent dispatched",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent mocked",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Auto-inferred repo not found, skipping",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Auto-inferred repo verified",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Change analysis: affected services detected",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Change analysis: candidate repos derived",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Change analysis: dispatching for service",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Change analysis: dispatching for validated repos",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Clone contents",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Critic validation",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cross-repo trace recommended",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Diagnosis complete",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Hypothesis tracker blocked re-dispatch",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM parsed repo correction",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Log agent primary_pattern",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Namespace auto-detect suppressed \u2014 user-set namespace preserved",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Namespace auto-detected from logs",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Phase transition",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Reasoning chain enriched",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repo confirmation response received",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repo validation failed",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repos confirmed by user",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repos updated by user corrections",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repos updated via LLM parsing",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Session started",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipping invalid repos",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipping unvalidated user repos",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "code_agent token check",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent skipped due to missing prerequisites",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Auto-infer repo_map validation failed: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "CriticEnsemble failed; falling back to legacy CriticAgent: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to build LogAnalysisResult: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to enrich reasoning chain: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fix verification failed: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Impact analysis failed: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM repo correction parsing failed: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Max re-investigations reached, proceeding to diagnosis",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Past incident query failed: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repo confirmation timed out",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repo mismatch confirmation timed out",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Repo validation error for %s: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Signal extraction failed",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "deterministic confidence failed; retaining legacy value: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "persist winning_agents failed (non-fatal): %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "signature fast-path failed: %s",
+      "file": "backend/src/agents/supervisor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ELK reconstruction: query failed: %s",
+      "file": "backend/src/agents/tracing/elk_reconstructor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "pattern detector %s crashed \u2014 continuing",
+      "file": "backend/src/agents/tracing/patterns_runner.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "baseline fetcher unavailable; detector will skip",
+      "file": "backend/src/agents/tracing_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "event_emitter.emit failed",
+      "file": "backend/src/agents/tracing_agent.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tier %d LLM call failed; returning low-confidence stub",
+      "file": "backend/src/agents/tracing_agent.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM returned unparseable JSON; using fallback",
+      "file": "backend/src/agents/tracing_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "find_traces leg failed: %s",
+      "file": "backend/src/agents/tracing_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_trace failed for %s: %s",
+      "file": "backend/src/agents/tracing_agent.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Device added: %s (%s)",
+      "file": "backend/src/api/collector_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Discovery config added: %s",
+      "file": "backend/src/api/collector_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "sysObjectID query failed for %s: %s",
+      "file": "backend/src/api/collector_endpoints.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Diagnostic run %s failed: %s",
+      "file": "backend/src/api/db_endpoints.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Diagnostic run %s completed: %s",
+      "file": "backend/src/api/db_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DB diagnosis failed: %s",
+      "file": "backend/src/api/db_session_endpoints.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DB diagnosis timed out for session %s",
+      "file": "backend/src/api/db_session_endpoints.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create adapter from profile: %s",
+      "file": "backend/src/api/db_session_endpoints.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DB diagnostics session created",
+      "file": "backend/src/api/db_session_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No ANTHROPIC_API_KEY \u2014 DB agents will use heuristic-only mode",
+      "file": "backend/src/api/db_session_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Discovery scan failed: %s",
+      "file": "backend/src/api/discovery_endpoints.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Reverse DNS failed for %s: %s",
+      "file": "backend/src/api/discovery_endpoints.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket error",
+      "file": "backend/src/api/main.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Agent ContractRegistry initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert endpoints initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cloud CRUD endpoints initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Collector endpoints initialized (%d profiles loaded)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ConfigDriftEngine initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DBMonitor started",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DBMonitor stopped",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Database tables initialized and defaults seeded",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DebugDuck starting in %s mode (DEBUGDUCK_MODE=%s)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DiagnosticStore initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Discovery endpoints initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DiscoveryEngine initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DiscoveryScheduler started (%d devices)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Enterprise fixtures: %d entities loaded",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event bus: Redis Streams at %s",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event bus: in-process MemoryEventBus (set REDIS_URL for Redis)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event endpoints initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "EventStore initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Export endpoints initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FixJobQueue shut down",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FixJobQueue started",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FlowReceiver started on port %d",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FlowReceiver stopped",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FlowStore initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "INFLUXDB_TOKEN not set \u2014 InfluxDB metrics disabled",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB MetricsStore closed",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB MetricsStore initialized at %s",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Knowledge graph rebuilt with fixture data",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MockEventGenerator started",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "NetworkMonitor started",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pending action timed out for session %s, reset to indefinite",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "PingProbeScheduler started",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Production mode: cleared %d demo rows from topology store",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Production mode: cleared stale metrics.db",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Production mode: skipping fixture device loading for schedulers",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prompt registry seeded (%d agents)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Redis connection closed",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Redis session store initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Reloaded %d adapter instances and %d device bindings from DB",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "RemediationEngine initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Resource CRUD endpoints initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Resume scan complete (%d orphaned runs logged; dispatch disabled until supervisor factory lands)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SQLite MetricsStore + SNMP scheduler started",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SQLite MetricsStore initialized (SNMP scheduler disabled in production)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SQLiteAlertEngine started (%d rules, %d devices)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Search endpoints initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Security CRUD endpoints initialized",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Shared http client pool closed",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WorkflowService initialized (db=%s, runners=%d)",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "resume candidate (lock not acquired, logging only): %s",
+      "file": "backend/src/api/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Adapter reload skipped: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cloud CRUD endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Collector endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ConfigDriftEngine startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DBMonitor startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DiagnosticStore initialization failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Discovery endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DiscoveryEngine not available: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DiscoveryScheduler startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ENCRYPTION KEY MISMATCH: Cannot decrypt credentials for: %s. These were saved with a different encryption key. Please re-save them in Settings > Integrations.",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Enterprise fixture loading failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event bus init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event replay failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Export endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to reload adapter %s: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FixJobQueue shutdown failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FixJobQueue startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FlowReceiver startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FlowStore init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MockEventGenerator startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "NetworkMonitor startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "PingProbeScheduler startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Production mode cleanup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prompt registry bootstrap failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Redis session store init failed (falling back to in-memory): %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Redis shutdown failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "RemediationEngine startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Resource CRUD endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Resume scan failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SQLite metrics / SNMP scheduler startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SQLiteAlertEngine startup failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Search endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Security CRUD endpoints init failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "V3 approval no longer supported",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "http_clients.close_all failed: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "prompt registry ensure_persisted failed for %s: %s",
+      "file": "backend/src/api/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unhandled exception during request",
+      "file": "backend/src/api/middleware_observability.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert rule added: %s",
+      "file": "backend/src/api/network_alert_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert rule removed: %s",
+      "file": "backend/src/api/network_alert_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert rule updated: %s",
+      "file": "backend/src/api/network_alert_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "chat request: view=%s thread=%s user=%s",
+      "file": "backend/src/api/network_chat_endpoints.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Network diagnosis failed",
+      "file": "backend/src/api/network_endpoints.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert-triggered diagnostic session registration failed: %s",
+      "file": "backend/src/api/routes_alerts.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert-triggered session registered (awaiting cluster connection)",
+      "file": "backend/src/api/routes_alerts.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alertmanager webhook: scheduled diagnostic",
+      "file": "backend/src/api/routes_alerts.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Confluence publish failed: %s",
+      "file": "backend/src/api/routes_closure.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Jira issue creation failed: %s",
+      "file": "backend/src/api/routes_closure.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Remedy incident creation failed: %s",
+      "file": "backend/src/api/routes_closure.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Could not resolve profile config: %s",
+      "file": "backend/src/api/routes_closure.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to link PR to Jira issue: %s",
+      "file": "backend/src/api/routes_closure.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM narrative failed, falling back to deterministic: %s",
+      "file": "backend/src/api/routes_closure.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "replay step failed at t=%.2f: %s",
+      "file": "backend/src/api/routes_demo_scenario.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "demo scenario started",
+      "file": "backend/src/api/routes_demo_scenario.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "scenario cancelled session=%s",
+      "file": "backend/src/api/routes_demo_scenario.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "scenario replay complete session=%s",
+      "file": "backend/src/api/routes_demo_scenario.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "scenario replay starting session=%s speed=%.2fx",
+      "file": "backend/src/api/routes_demo_scenario.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "approval timed out; auto-advancing session=%s",
+      "file": "backend/src/api/routes_demo_scenario.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "unknown timeline kind=%s; skipping",
+      "file": "backend/src/api/routes_demo_scenario.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "demo seed accepted",
+      "file": "backend/src/api/routes_demo_seed.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "demo seed: redis persist failed for %s: %s",
+      "file": "backend/src/api/routes_demo_seed.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "feedback: no winning_agents in DAG snapshot for run_id=%s; priors not updated",
+      "file": "backend/src/api/routes_feedback.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/api/routes_profiles.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to broadcast profile change: %s",
+      "file": "backend/src/api/routes_profiles.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipping duplicate pin",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipping malformed pin during critic delta",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "budget telemetry skipped",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cluster chat LLM call failed",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cluster diagnosis failed",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cluster diagnosis timed out",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Critic delta revalidation failed",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Diagnosis failed",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to push V5 governance data for session %s: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Recommendation refresh failed for %s: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Chat handler failed for session %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fix decision handler failed for session %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Investigation route failed for session %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Auto-detected Prometheus at %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cancelled diagnosis task for deleted session",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Chat message received",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cleaned up %d stale sessions",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cluster diagnosis cancelled for session %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cluster session created",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Diagnosis cancelled for session %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ELK index provided but no ELK endpoint configured \u2014 skipping log analysis",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Findings requested",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No cluster credentials found, using MockClusterClient",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No explicit cluster credentials provided, using MockClusterClient",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pipeline session created",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "PromQL run audit",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Pushed V5 governance data for session %s: %d evidence pins",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Recommendation refresh complete for %s: %d findings",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Reconstructed campaign orchestrator from Redis",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Session cleanup loop started (TTL=%dh)",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Session created",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "self_consistency_runs=%d requested; multi-run orchestration is a carry-forward follow-up \u2014 ran once",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Could not build ad-hoc connection config: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Could not resolve profile config: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Critic delta: pin not found in session",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Critic delta: session or pins missing",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create ElasticsearchClient: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create KubernetesClient from kubeconfig content: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create KubernetesClient with bearer token: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create PrometheusClient: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to delete session from store: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to resolve ELK URL from global integrations: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "PromQL proxy error: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "PromQL rate-limit check skipped: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "PromQL run rejected",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Prometheus query failed: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Redis persist failed for session %s: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket broadcast failed for critic delta",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket broadcast failed for evidence pin",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "cicd_stream: github commits fetch failed: %s",
+      "file": "backend/src/api/routes_v4.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Governance data requested",
+      "file": "backend/src/api/routes_v5.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Governance data requested",
+      "file": "backend/src/api/routes_v5.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Governance data requested",
+      "file": "backend/src/api/routes_v5.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Governance data requested",
+      "file": "backend/src/api/routes_v5.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket connected",
+      "file": "backend/src/api/websocket.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket disconnected",
+      "file": "backend/src/api/websocket.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Closing stale WebSocket (missed pongs)",
+      "file": "backend/src/api/websocket.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket send failed after retry",
+      "file": "backend/src/api/websocket.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to discover %s in %s: %s",
+      "file": "backend/src/cloud/drivers/aws_driver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Mapper failed for %s %s: %s",
+      "file": "backend/src/cloud/mapper.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipping %s tier %d \u2014 another sync running",
+      "file": "backend/src/cloud/sync/scheduler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Scheduler loop error: %s",
+      "file": "backend/src/cloud/sync/scheduler.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Sync failed for %s tier %d: %s",
+      "file": "backend/src/cloud/sync/scheduler.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No driver for provider %s",
+      "file": "backend/src/cloud/sync/scheduler.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WAL checkpoint failed: %s",
+      "file": "backend/src/cloud/sync/wal_monitor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WAL file large: %.1f MB. Attempting TRUNCATE.",
+      "file": "backend/src/cloud/sync/wal_monitor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Connected to MongoDB at %s:%s/%s",
+      "file": "backend/src/database/adapters/mongo.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Disconnected from MongoDB",
+      "file": "backend/src/database/adapters/mongo.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to get collStats for %s: %s",
+      "file": "backend/src/database/adapters/mongo.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Connected to %s:%s/%s on attempt %d",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Connection attempt %d/%d failed (%s), retrying in %ds",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "EXPLAIN failed: %s",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_autovacuum_status (running) failed: %s",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_autovacuum_status (stale) failed: %s",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_lock_chains failed: %s",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_long_transactions failed: %s",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_table_access_patterns failed: %s",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_wait_events failed: %s",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "pg_stat_statements not available: %s",
+      "file": "backend/src/database/adapters/postgres.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Registered DB adapter %s (%s)",
+      "file": "backend/src/database/adapters/registry.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DBMonitor cycle error: %s",
+      "file": "backend/src/database/db_monitor.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DBMonitor started (interval=%ds)",
+      "file": "backend/src/database/db_monitor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DBMonitor stopped",
+      "file": "backend/src/database/db_monitor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert evaluation failed for %s: %s",
+      "file": "backend/src/database/db_monitor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DBMonitor collection failed for %s: %s",
+      "file": "backend/src/database/db_monitor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Remediation %s failed: %s",
+      "file": "backend/src/database/remediation_engine.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Remediation %s completed: %s",
+      "file": "backend/src/database/remediation_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Audit: %s %s %s",
+      "file": "backend/src/integrations/audit_store.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "backend_audit write failed: %s",
+      "file": "backend/src/integrations/backend_audit.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "cicd audit hook failed",
+      "file": "backend/src/integrations/cicd/audit_hook.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "jenkins list_deploy_events: job %s failed: %s",
+      "file": "backend/src/integrations/cicd/jenkins_client.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "argocd instance %s failed to resolve: %s",
+      "file": "backend/src/integrations/cicd/resolver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "jenkins instance %s failed to resolve: %s",
+      "file": "backend/src/integrations/cicd/resolver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Created Confluence page %s in space %s",
+      "file": "backend/src/integrations/confluence_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "GitHub integration found: id=%s, url=%s, has_handle=%s",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "GitHub token decrypted: length=%d",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "GitHub token from env var: length=%d",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No GitHub integration found in global_integrations store",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No GitHub token available (neither integration store nor env var)",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No active profile found, falling back to environment variables",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to decrypt ELK credentials: %s: %s",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to decrypt GitHub token: %s: %s",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to decrypt GitHub token: %s: %s",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to decrypt cluster token: %s: %s",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "GitHub integration has no auth_credential_handle",
+      "file": "backend/src/integrations/connection_config.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "K8s environment detected, using K8sSecretStore",
+      "file": "backend/src/integrations/credential_resolver.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Local environment detected, using FernetSecretStore",
+      "file": "backend/src/integrations/credential_resolver.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No commits in last %dh for %s, falling back to last %d",
+      "file": "backend/src/integrations/github_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Created Jira issue %s in project %s",
+      "file": "backend/src/integrations/jira_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Migrated integration '%s' (id=%s) to profile",
+      "file": "backend/src/integrations/migration_utils.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Profile %s already exists, skipping",
+      "file": "backend/src/integrations/migration_utils.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM narrative generated successfully",
+      "file": "backend/src/integrations/postmortem_renderer.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM narrative generation failed: %s",
+      "file": "backend/src/integrations/postmortem_renderer.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "oc CLI not found, falling back to kubectl for OpenShift cluster",
+      "file": "backend/src/integrations/probe.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Created Remedy incident %s",
+      "file": "backend/src/integrations/remedy_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Obtained Remedy JWT token",
+      "file": "backend/src/integrations/remedy_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to initialize K8s client: %s",
+      "file": "backend/src/integrations/secret_store.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to persist dev key: %s",
+      "file": "backend/src/integrations/secret_store.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Decrypted %s/%s with old dev key \u2014 re-encrypting with DEBUGDUCK_MASTER_KEY",
+      "file": "backend/src/integrations/secret_store.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Dev encryption key persisted to %s",
+      "file": "backend/src/integrations/secret_store.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DEBUGDUCK_MASTER_KEY not set. Generated and persisted dev key at %s. DO NOT use in production.",
+      "file": "backend/src/integrations/secret_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DEBUGDUCK_MASTER_KEY not set. Using persisted dev key from %s. DO NOT use in production.",
+      "file": "backend/src/integrations/secret_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "AWS SG: failed to fetch rules for %s",
+      "file": "backend/src/network/adapters/aws_sg_adapter.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Azure NSG: failed to fetch routes for resource group %s",
+      "file": "backend/src/network/adapters/azure_nsg_adapter.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Azure NSG: failed to fetch rules for %s",
+      "file": "backend/src/network/adapters/azure_nsg_adapter.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d ACL rules from %s",
+      "file": "backend/src/network/adapters/cisco_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d NAT rules from %s",
+      "file": "backend/src/network/adapters/cisco_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d VRFs from %s",
+      "file": "backend/src/network/adapters/cisco_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d interfaces from %s",
+      "file": "backend/src/network/adapters/cisco_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d routes from %s",
+      "file": "backend/src/network/adapters/cisco_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d zones from %s",
+      "file": "backend/src/network/adapters/cisco_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Adapter for '%s' not created (SDK missing or incomplete config) \u2014 using mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create AWSSGAdapter: %s, falling back to mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create AzureNSGAdapter: %s, falling back to mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create CheckpointAdapter: %s, falling back to mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create CiscoAdapter: %s, falling back to mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create F5Adapter: %s, falling back to mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create OracleNSGAdapter: %s, falling back to mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create PanoramaAdapter: %s, falling back to mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to create ZscalerAdapter: %s, falling back to mock",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unrecognised vendor '%s' \u2014 falling back to mock adapter",
+      "file": "backend/src/network/adapters/factory.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Oracle NSG: failed to fetch rules for %s",
+      "file": "backend/src/network/adapters/oracle_nsg_adapter.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Discovered %d device groups from %s",
+      "file": "backend/src/network/adapters/panorama_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d NAT rules from %s",
+      "file": "backend/src/network/adapters/panorama_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d interfaces from %s",
+      "file": "backend/src/network/adapters/panorama_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d routes from %s",
+      "file": "backend/src/network/adapters/panorama_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d security rules from %s",
+      "file": "backend/src/network/adapters/panorama_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d virtual routers from %s",
+      "file": "backend/src/network/adapters/panorama_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Fetched %d zones from %s",
+      "file": "backend/src/network/adapters/panorama_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Device group discovery failed: %s",
+      "file": "backend/src/network/adapters/panorama_adapter.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Registered adapter instance %s (%s)",
+      "file": "backend/src/network/adapters/registry.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Escalation check failed",
+      "file": "backend/src/network/alert_engine.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Notification dispatch failed",
+      "file": "backend/src/network/alert_engine.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Suppressing flapping alert %s for %s/%s",
+      "file": "backend/src/network/alert_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Probe %s failed: %s",
+      "file": "backend/src/network/collectors/autodiscovery.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Invalid CIDR %s: %s",
+      "file": "backend/src/network/collectors/autodiscovery.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Autodiscovery: found %d devices in %s",
+      "file": "backend/src/network/collectors/autodiscovery.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Autodiscovery: scanning %d hosts in %s",
+      "file": "backend/src/network/collectors/autodiscovery.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Large subnet %s (%d hosts) \u2014 limiting to first 1024",
+      "file": "backend/src/network/collectors/autodiscovery.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Checkpoint health collected for %s",
+      "file": "backend/src/network/collectors/checkpoint_collector.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cisco health collected for %s",
+      "file": "backend/src/network/collectors/cisco_collector.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Registered %s collector",
+      "file": "backend/src/network/collectors/collector_registry.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "F5 health collected for %s",
+      "file": "backend/src/network/collectors/f5_collector.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Palo Alto health collected for %s",
+      "file": "backend/src/network/collectors/paloalto_collector.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Ping %s failed: %s",
+      "file": "backend/src/network/collectors/ping_prober.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load profile %s: %s",
+      "file": "backend/src/network/collectors/profile_loader.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to resolve profile %s: %s",
+      "file": "backend/src/network/collectors/profile_loader.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Loaded %d device profiles (%d base fragments)",
+      "file": "backend/src/network/collectors/profile_loader.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Profiles directory not found: %s",
+      "file": "backend/src/network/collectors/profile_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP query %s on %s failed: %s",
+      "file": "backend/src/network/collectors/snmp_collector.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "pysnmp not available \u2014 SNMP collector will use simulated mode",
+      "file": "backend/src/network/collectors/snmp_collector.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP collect failed for %s: %s",
+      "file": "backend/src/network/collectors/snmp_collector.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Device lookup failed for %s: %s",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Dropped unparseable syslog message from %s (%d bytes)",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No running event loop; syslog event dropped",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to bind syslog listener on UDP port %d: %s",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to publish syslog event %s: %s",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Syslog listener socket error: %s",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Syslog IPv6 listener started on UDP port %d",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Syslog listener disabled via SYSLOG_LISTENER_ENABLED",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Syslog listener started on UDP port %d",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Syslog listener stopped (received=%d, errors=%d)",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to bind syslog IPv6 listener on UDP port %d: %s",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Syslog listener connection lost: %s",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Syslog message from %s exceeds MAX_MESSAGE_SIZE (%d > %d), truncating",
+      "file": "backend/src/network/collectors/syslog_listener.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Device lookup failed for %s: %s",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Dropped non-SNMPv2c packet from %s (%d bytes)",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to parse SNMPv2c trap PDU: %s",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Ignoring SNMP version %d (expected v2c = 1)",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No running event loop; trap event dropped",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to bind SNMP trap listener on UDP port %d: %s",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to publish trap event %s: %s",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Trap listener socket error: %s",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP trap listener disabled via TRAP_LISTENER_ENABLED",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP trap listener started on UDP port %d",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP trap listener stopped (received=%d, errors=%d)",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Trap listener connection lost: %s",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Trap message from %s exceeds MAX_MESSAGE_SIZE (%d > %d), truncating",
+      "file": "backend/src/network/collectors/trap_listener.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "New baseline set for %s",
+      "file": "backend/src/network/config_drift.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Config drift detected on %s: %d lines changed",
+      "file": "backend/src/network/config_drift.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "boto3 is not installed \u2014 cannot perform live AWS discovery",
+      "file": "backend/src/network/discovery/aws_adapter.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Adapter %s failed for %s: %s",
+      "file": "backend/src/network/discovery/crawler.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Production LLDP/CDP discovery not yet implemented for %s",
+      "file": "backend/src/network/discovery/lldp_adapter.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No handler for observation type %s \u2014 skipping",
+      "file": "backend/src/network/discovery/observation_handler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Adapter %s has no incremental targets",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cloud adapter %s failed",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cloud sync tick",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Full crawl tick",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Incremental discovery tick",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No seed devices configured for full crawl",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Error in cloud sync loop",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Error in full crawl loop",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Error in incremental discovery loop",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DiscoveryScheduler starting",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DiscoveryScheduler stopping",
+      "file": "backend/src/network/discovery/scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ARP walk failed for %s: %s",
+      "file": "backend/src/network/discovery_engine.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Discovery: adapter %s failed: %s",
+      "file": "backend/src/network/discovery_engine.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Flow discovery failed: %s",
+      "file": "backend/src/network/discovery_engine.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Real discovery not yet implemented for %s",
+      "file": "backend/src/network/discovery_scheduler.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Discovery found %d new candidate devices",
+      "file": "backend/src/network/discovery_scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Discovery scheduler started (interval: %ds)",
+      "file": "backend/src/network/discovery_scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DNS drift detected: %s/%s on %s \u2014 expected %s, got %s",
+      "file": "backend/src/network/dns_monitor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to fetch live NAT rules for device %s",
+      "file": "backend/src/network/drift_engine.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to fetch live interfaces for device %s",
+      "file": "backend/src/network/drift_engine.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to fetch live routes for device %s",
+      "file": "backend/src/network/drift_engine.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to fetch live rules for device %s",
+      "file": "backend/src/network/drift_engine.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to fetch live zones for device %s",
+      "file": "backend/src/network/drift_engine.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Dedup cleanup: pruned %d entries",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Duplicate event on %s dropped",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Flushed %d events on %s",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No event_store configured; dropping %d syslog events",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No event_store configured; dropping %d traps",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipped malformed alert event: %s",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipped malformed flow event: %s",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipped malformed metric event: %s",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Dedup cleanup error",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to write %d events on %s",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Flush loop error",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "EventProcessor started on %d channels",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "EventProcessor stopped",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unknown channel %s \u2014 dropped %d events",
+      "file": "backend/src/network/event_bus/event_processor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to MERGE Device %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to MERGE Interface %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to MERGE Link %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to MERGE Route %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to MERGE SecurityPolicy %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to SET stale on %s %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MERGE Device %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MERGE Interface %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MERGE Link %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MERGE Route %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MERGE SecurityPolicy %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SET stale on %s %s",
+      "file": "backend/src/network/event_bus/graph_mutator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Kafka delivery confirmed: topic=%s partition=%s offset=%s",
+      "file": "backend/src/network/event_bus/kafka_bus.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Published %s to topic %s (channel %s)",
+      "file": "backend/src/network/event_bus/kafka_bus.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Kafka delivery failed for topic %s: %s",
+      "file": "backend/src/network/event_bus/kafka_bus.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "KafkaEventBus started (bootstrap=%s, group=%s, client=%s)",
+      "file": "backend/src/network/event_bus/kafka_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "KafkaEventBus stopped",
+      "file": "backend/src/network/event_bus/kafka_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Subscribed %s to channel %s (Kafka consumer loop TBD)",
+      "file": "backend/src/network/event_bus/kafka_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unsubscribed %s from channel %s",
+      "file": "backend/src/network/event_bus/kafka_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "KafkaEventBus: %d messages were not delivered on shutdown",
+      "file": "backend/src/network/event_bus/kafka_bus.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Published %s to %s",
+      "file": "backend/src/network/event_bus/memory_bus.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Handler error processing %s on %s",
+      "file": "backend/src/network/event_bus/memory_bus.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MemoryEventBus started (in-process mode)",
+      "file": "backend/src/network/event_bus/memory_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "MemoryEventBus stopped",
+      "file": "backend/src/network/event_bus/memory_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Subscribed %s to channel %s (in-memory)",
+      "file": "backend/src/network/event_bus/memory_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unsubscribed %s from channel %s",
+      "file": "backend/src/network/event_bus/memory_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Channel %s queue full (%d); dropped oldest event",
+      "file": "backend/src/network/event_bus/memory_bus.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Malformed JSON in message %s on %s",
+      "file": "backend/src/network/event_bus/memory_bus.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Consumer loop for %s cancelled",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Created consumer group '%s' on stream '%s'",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Published to %s: %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to write to DLQ for %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Handler error processing %s on %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "RedisEventBus connected to %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "RedisEventBus stopped",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Subscribed %s to channel %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unsubscribed %s from channel %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Malformed JSON in message %s on %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Message %s on %s missing 'data' field",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Redis consumer error on %s (retry in %.1fs): %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "xgroup_create failed for %s: %s",
+      "file": "backend/src/network/event_bus/redis_bus.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket client registered: %s",
+      "file": "backend/src/network/event_bus/websocket_publisher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket client unregistered: %s",
+      "file": "backend/src/network/event_bus/websocket_publisher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocketTopologyPublisher subscribed to %d topology channels",
+      "file": "backend/src/network/event_bus/websocket_publisher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Auto-unregistering broken WebSocket client: %s",
+      "file": "backend/src/network/event_bus/websocket_publisher.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Mock event generator started",
+      "file": "backend/src/network/event_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Production mode \u2014 mock event generator disabled",
+      "file": "backend/src/network/event_generator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Enterprise fixtures loaded: %d entities (%s)",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No enterprise fixtures found at %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Production mode \u2014 skipping fixture loading",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load HA group %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load LB %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load MPLS %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load NAT rule %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load TGW %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load VLAN %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load VPC %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load VPN tunnel %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load device %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load direct connect %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load firewall rule %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load interface %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load route %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load subnet %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load target group %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to load zone %s: %s",
+      "file": "backend/src/network/fixture_loader.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "No template %d for exporter %s",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Template %d for exporter %s expired",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Unsupported flow version: %d",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Flow aggregation flush failed: %s",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Flow receiver listening on UDP port %d (%s)",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Flushed %d flow records",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to bind UDP port %d (%s): %s",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to publish flow aggregate to event bus: %s",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Flow buffer full (%d records), dropping oldest",
+      "file": "backend/src/network/flow_receiver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Skipping invalid CIDR entry: %s",
+      "file": "backend/src/network/ip_resolver.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "L2 neighbor edge creation failed: %s",
+      "file": "backend/src/network/knowledge_graph.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Retry write still failing: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to query DB metrics: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to write DB metric: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to write DB metrics batch: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB ASN query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB DNS query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB IPAM query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB applications query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB conversations query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB flow volume query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB health check failed",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB query failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InfluxDB write failed: %s",
+      "file": "backend/src/network/metrics_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "ARP discovery failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Adapter discovery failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Adapter pass failed for %s: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Autodiscovery pass failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Broadcast failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DNS pass failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Drift check failed for %s: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Flow discovery failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "IPAM alert pass failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "IPAM utilization pass failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Probe discovery failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Probe failed for %s (%s): %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Protocol pass failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Monitor cycle failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Monitor pass %d failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Autodiscovered new device: %s (%s)",
+      "file": "backend/src/network/monitor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Escalated %d alerts",
+      "file": "backend/src/network/monitor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Monitor pass %d completed in %.2fs",
+      "file": "backend/src/network/monitor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "NetworkMonitor started (interval=%ds)",
+      "file": "backend/src/network/monitor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "NetworkMonitor stopped",
+      "file": "backend/src/network/monitor.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Escalation check failed: %s",
+      "file": "backend/src/network/monitor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Shutdown timed out after 10s, forcing cleanup",
+      "file": "backend/src/network/monitor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Escalation send failed for %s",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to send alert to channel %s",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Email sent to %s",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "PagerDuty event sent (dedup_key=%s)",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Slack message sent (status %d)",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Teams message sent (status %d)",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Webhook sent to %s (status %d)",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "httpx not installed \u2014 cannot send PagerDuty event",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "httpx not installed \u2014 cannot send Slack message",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "httpx not installed \u2014 cannot send Teams message",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "httpx not installed \u2014 cannot send webhook",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "smtplib not available \u2014 cannot send email",
+      "file": "backend/src/network/notification_dispatcher.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Ping probe failed for %s: %s",
+      "file": "backend/src/network/ping_scheduler.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Ping probe scheduler started (interval: %ds, targets: %d)",
+      "file": "backend/src/network/ping_scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Ping probes: %d targets configured",
+      "file": "backend/src/network/ping_scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Real ping failed for %s: %s",
+      "file": "backend/src/network/ping_scheduler.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "EdgeBuilder: %d edges built (%d before dedup)",
+      "file": "backend/src/network/repository/edge_builder.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "L2 edge building failed: %s",
+      "file": "backend/src/network/repository/edge_builder.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event publish failed: %s",
+      "file": "backend/src/network/repository/event_publishing_repository.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event publish failed: %s",
+      "file": "backend/src/network/repository/event_publishing_repository.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Full sync complete: %s",
+      "file": "backend/src/network/repository/graph_sync.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synced %d IP addresses",
+      "file": "backend/src/network/repository/graph_sync.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synced %d devices",
+      "file": "backend/src/network/repository/graph_sync.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synced %d interfaces",
+      "file": "backend/src/network/repository/graph_sync.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synced %d neighbor links",
+      "file": "backend/src/network/repository/graph_sync.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Synced %d subnets",
+      "file": "backend/src/network/repository/graph_sync.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "TopologyStore has no list_subnets \u2014 skipping subnet sync",
+      "file": "backend/src/network/repository/graph_sync.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Neo4j connection verified: %s (database=%s)",
+      "file": "backend/src/network/repository/neo4j_connection.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Neo4j driver closed.",
+      "file": "backend/src/network/repository/neo4j_connection.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Neo4j blast_radius failed for %s",
+      "file": "backend/src/network/repository/neo4j_repository.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Neo4j find_paths failed for %s -> %s",
+      "file": "backend/src/network/repository/neo4j_repository.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Neo4j get_topology_export failed",
+      "file": "backend/src/network/repository/neo4j_repository.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Neo4j sync failed for device %s",
+      "file": "backend/src/network/repository/neo4j_repository.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Neo4j sync failed for interface %s",
+      "file": "backend/src/network/repository/neo4j_repository.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Neo4j sync failed for neighbor link %s",
+      "file": "backend/src/network/repository/neo4j_repository.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Schema v%d applied: %d constraints, %d indexes",
+      "file": "backend/src/network/repository/neo4j_schema.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "DDL statement failed (may be expected on some editions): %s",
+      "file": "backend/src/network/repository/neo4j_schema.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Missing Neo4j device (will be synced): %s",
+      "file": "backend/src/network/repository/reconciliation.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Reconciliation complete: %s",
+      "file": "backend/src/network/repository/reconciliation.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Stale Neo4j device (not in SQLite): %s",
+      "file": "backend/src/network/repository/reconciliation.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Error during staleness scan",
+      "file": "backend/src/network/repository/staleness_detector.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Stale device detected: %s (last_seen=%s)",
+      "file": "backend/src/network/repository/staleness_detector.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Staleness scan complete: %d stale out of %d devices",
+      "file": "backend/src/network/repository/staleness_detector.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "StalenessDetector started (interval=%ds, threshold=%s)",
+      "file": "backend/src/network/repository/staleness_detector.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "StalenessDetector stop requested",
+      "file": "backend/src/network/repository/staleness_detector.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Backoff %.2fs before attempt %d/%d after HTTP %d",
+      "file": "backend/src/network/retry_after.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Retry-After honoured: sleeping %.2fs before attempt %d/%d",
+      "file": "backend/src/network/retry_after.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "pysnmp not installed \u2014 pip install pysnmp-lextudio",
+      "file": "backend/src/network/snmp_collector.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "pysnmp-lextudio not installed",
+      "file": "backend/src/network/snmp_collector.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "pysnmp-lextudio not installed",
+      "file": "backend/src/network/snmp_collector.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP poll failed for %s: %s",
+      "file": "backend/src/network/snmp_collector.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP walk timed out for %s after %.0fs",
+      "file": "backend/src/network/snmp_collector.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP poll failed for %s: %s",
+      "file": "backend/src/network/snmp_scheduler.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP polling started (interval: %ds, devices: %d)",
+      "file": "backend/src/network/snmp_scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP polling stopped",
+      "file": "backend/src/network/snmp_scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SNMP scheduler: %d devices configured",
+      "file": "backend/src/network/snmp_scheduler.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Real SNMP not yet implemented for %s \u2014 using mock",
+      "file": "backend/src/network/snmp_scheduler.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Vendor health collection failed for %s (%s): %s",
+      "file": "backend/src/network/snmp_scheduler.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert evaluation: %d new alerts",
+      "file": "backend/src/network/sqlite_alert_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Alert fired: %s on %s (%s)",
+      "file": "backend/src/network/sqlite_alert_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SQLite alert engine started (interval: %ds, rules: %d)",
+      "file": "backend/src/network/sqlite_alert_engine.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cleaned up %d old metric rows (retention: %dd)",
+      "file": "backend/src/network/sqlite_metrics_store.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SQLite metrics store initialized at %s",
+      "file": "backend/src/network/sqlite_metrics_store.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Migration failed: %s \u2014 %s",
+      "file": "backend/src/network/topology_store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Corrupt entry in Redis for session %s",
+      "file": "backend/src/observability/store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Corrupt entry in Redis for session %s",
+      "file": "backend/src/observability/store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Corrupt event in store for session %s",
+      "file": "backend/src/observability/store.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "inserted %d demo investigation snapshot(s)",
+      "file": "backend/src/scripts/seed_fixtures.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "inserted/updated %d agent prior(s)",
+      "file": "backend/src/scripts/seed_fixtures.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "removed %d previously-seeded snapshot(s)",
+      "file": "backend/src/scripts/seed_fixtures.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "\u2713 seed complete \u2014 browse to /sessions to see the demo runs",
+      "file": "backend/src/scripts/seed_fixtures.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "priors seed skipped (%s) \u2014 agent_priors table may not exist yet",
+      "file": "backend/src/scripts/seed_fixtures.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/tools/dependency_parser.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/tools/investigation_router.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool '%s' timed out after %ds",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Tool '%s' timed out after %ds",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "check_pod_status failed",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "describe_resource failed",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "fetch_pod_logs failed",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "get_events failed",
+      "file": "backend/src/tools/tool_executor.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/utils/circuit_breaker.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/utils/context_guard.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Event emitted",
+      "file": "backend/src/utils/event_emitter.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Failed to persist event to store: %s",
+      "file": "backend/src/utils/event_emitter.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Redis pub/sub publish failed (event persisted at seq=%s)",
+      "file": "backend/src/utils/event_emitter.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "WebSocket broadcast failed (event persisted at seq=%s)",
+      "file": "backend/src/utils/event_emitter.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Job failed (non-retryable)",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Job failed after max retries",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FixJobQueue shut down",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "FixJobQueue started",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Job cancelled",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Job cancelled via task",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Job completed",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Job submitted",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Purging orphan temp dir",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Retryable error \u2014 re-enqueueing",
+      "file": "backend/src/utils/fix_job_queue.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Budget adapted for large cluster: nodes=%d, pods=%d",
+      "file": "backend/src/utils/llm_budget.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM call failed",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM call failed",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM stream failed",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "error"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM call",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM call",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM response",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM response",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM stream call",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "LLM stream complete",
+      "file": "backend/src/utils/llm_client.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cloning local repository",
+      "file": "backend/src/utils/repo_manager.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cloning repository",
+      "file": "backend/src/utils/repo_manager.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Cleanup failed: %s",
+      "file": "backend/src/utils/repo_manager.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Sparse checkout failed, disabling: %s",
+      "file": "backend/src/utils/repo_manager.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/utils/tool_cache.py",
+      "level": "debug"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "%s crashed; restarting in %.1fs",
+      "file": "backend/src/workers/main.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "could not flip global drain state",
+      "file": "backend/src/workers/main.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "resume scan: failed to query orphaned runs",
+      "file": "backend/src/workers/main.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "worker dispatcher crashed",
+      "file": "backend/src/workers/main.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "%s cancelled; exiting subsystem cleanly",
+      "file": "backend/src/workers/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "drain requested \u2014 finishing in-flight work, will exit on completion",
+      "file": "backend/src/workers/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "resume scan disabled (set DIAGNOSTIC_RESUME_ON_STARTUP=on to enable)",
+      "file": "backend/src/workers/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "resume scan: no orphaned runs found",
+      "file": "backend/src/workers/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "starting outbox relay (redis_url=%s)",
+      "file": "backend/src/workers/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "starting trace baseline populator (interval_s=%d)",
+      "file": "backend/src/workers/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "worker dispatcher exited cleanly",
+      "file": "backend/src/workers/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "worker dispatcher starting (drain_grace_s=%d, resume_on_startup=%s)",
+      "file": "backend/src/workers/main.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "%s exited cleanly; restarting in %.1fs",
+      "file": "backend/src/workers/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "resume scan: orphaned run found \u2014 would dispatch (real dispatch pending route-layer factory): run_id=%s",
+      "file": "backend/src/workers/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "subsystem %s exceeded drain grace (%ds); force-killing",
+      "file": "backend/src/workers/main.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "baseline fetcher DB lookup failed",
+      "file": "backend/src/workers/trace_baseline_populator.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "populate_once crashed; continuing",
+      "file": "backend/src/workers/trace_baseline_populator.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "trace_baseline_populator pass failed",
+      "file": "backend/src/workers/trace_baseline_populator.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "trace_baseline_populator pass complete",
+      "file": "backend/src/workers/trace_baseline_populator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "trace_baseline_populator starting (interval_s=%d)",
+      "file": "backend/src/workers/trace_baseline_populator.py",
+      "level": "info"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "",
+      "file": "backend/src/workflows/executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "event emitter raised; continuing",
+      "file": "backend/src/workflows/executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "task for %s crashed",
+      "file": "backend/src/workflows/executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InvestigationExecutor: run_lock release failed",
+      "file": "backend/src/workflows/investigation_executor.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "InvestigationStepSpec v1 grace synth fired",
+      "file": "backend/src/workflows/investigation_types.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "OutboxRelay drain iteration failed",
+      "file": "backend/src/workflows/outbox_relay.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "Sink %s failed to emit run_id=%s seq=%s kind=%s",
+      "file": "backend/src/workflows/outbox_relay.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "resume: dispatch failed for %s",
+      "file": "backend/src/workflows/resume.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "resume: lock acquisition failed for %s",
+      "file": "backend/src/workflows/resume.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "run_lock heartbeat eval failed",
+      "file": "backend/src/workflows/run_lock.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "run_lock heartbeat: token no longer owns key (lock lost)",
+      "file": "backend/src/workflows/run_lock.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "run_lock release eval failed; TTL will reclaim",
+      "file": "backend/src/workflows/run_lock.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "append_event failed for %s %s",
+      "file": "backend/src/workflows/service.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "executor driver crashed for %s",
+      "file": "backend/src/workflows/service.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "final update_run_status failed for %s",
+      "file": "backend/src/workflows/service.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "run_lock release failed for %s",
+      "file": "backend/src/workflows/service.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "step_run persistence failed for %s %s",
+      "file": "backend/src/workflows/service.py",
+      "level": "exception"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SSE event queue full, event dropped: run_id=%s seq=%s",
+      "file": "backend/src/workflows/service.py",
+      "level": "warning"
+    },
+    {
+      "correlation_kwargs": [],
+      "event": "SSE terminal event queue full, event dropped: run_id=%s status=%s",
+      "file": "backend/src/workflows/service.py",
+      "level": "warning"
+    }
+  ],
+  "structlog_processors": [],
+  "tracing_initialized": false
+}

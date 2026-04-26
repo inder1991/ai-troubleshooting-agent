@@ -1,0 +1,59 @@
+{
+  "incident_critical_pages": [
+    {
+      "e2e_spec_present": false,
+      "name": "IncidentList",
+      "spec_file": null
+    },
+    {
+      "e2e_spec_present": false,
+      "name": "InvestigationView",
+      "spec_file": null
+    },
+    {
+      "e2e_spec_present": false,
+      "name": "WarRoomDashboard",
+      "spec_file": null
+    }
+  ],
+  "soft_warn_rules": [
+    "color-contrast"
+  ],
+  "ui_primitives": [
+    {
+      "axe_test_present": false,
+      "name": "Badge",
+      "test_file": null
+    },
+    {
+      "axe_test_present": false,
+      "name": "CopyButton",
+      "test_file": null
+    },
+    {
+      "axe_test_present": false,
+      "name": "ErrorBanner",
+      "test_file": null
+    },
+    {
+      "axe_test_present": false,
+      "name": "ErrorBoundary",
+      "test_file": null
+    },
+    {
+      "axe_test_present": false,
+      "name": "HoldToConfirm",
+      "test_file": null
+    },
+    {
+      "axe_test_present": false,
+      "name": "SkeletonCard",
+      "test_file": null
+    },
+    {
+      "axe_test_present": false,
+      "name": "error-boundary",
+      "test_file": null
+    }
+  ]
+}
