@@ -1,0 +1,142 @@
+[
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/failure_patterns.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/hallucination_detector.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/hypothesis_engine.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/recommendation_engine.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/signal_normalizer.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/orchestrator.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/orchestration/signal_extractor.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_alert_endpoints.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/session_auth.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_query_endpoints.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/hypothesis/signal_extractor.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/hypothesis/signal_extractor.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/hypothesis/signal_extractor.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/hypothesis/signal_extractor.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/hypothesis/signal_extractor.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/hypothesis/signal_extractor.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/hypothesis/signal_extractor.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/cicd/resolver.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/connection_config.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/syslog_listener.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/trap_listener.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/ipam_ingestion.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/ipam_ingestion.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/retry_after.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/observability/trace_context.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/utils/resource_ref_parser.py",
+    "line": 1,
+    "rule": "Q9.extractor-needs-hypothesis"
+  }
+]
