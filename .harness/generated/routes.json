@@ -1,0 +1,174 @@
+{
+  "routes": [
+    {
+      "lazy_imported": false,
+      "page_module": "./pages/NotFound",
+      "path": "*"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Network/NetworkAdaptersView",
+      "path": "adapters"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./layouts/AgentsLayout",
+      "path": "agents"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/AuditLog/AuditLogView",
+      "path": "audit"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./pages/CatalogPage",
+      "path": "catalog"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./pages/CICDPage",
+      "path": "cicd"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Cloud/CloudResourcesView",
+      "path": "cloud"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./layouts/ClustersLayout",
+      "path": "clusters"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Database/DBConnections",
+      "path": "connections"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./layouts/DatabaseLayout",
+      "path": "database"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Database/DBDiagnosticsPage",
+      "path": "diagnostics"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/NetworkTroubleshooting/ReachabilityMatrix",
+      "path": "flows"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "HowItWorksRoute",
+      "path": "how-it-works"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "IntegrationsRoute",
+      "path": "integrations"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "SessionsRoute",
+      "path": "investigations"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "InvestigationRoute",
+      "path": "investigations/:sessionId"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "DossierRoute",
+      "path": "investigations/:sessionId/dossier"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "CapabilityFormRoute",
+      "path": "investigations/new"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/IPAM/IPAMDashboard",
+      "path": "ipam"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "AgentMatrixRoute",
+      "path": "matrix"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Network/MIBBrowserView",
+      "path": "mib-browser"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Network/DeviceMonitoring",
+      "path": "monitoring"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Database/DBMonitoring",
+      "path": "monitoring"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./layouts/NetworkLayout",
+      "path": "network"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "LiveTopologyRoute",
+      "path": "network/live-topology"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "ObservatoryRoute",
+      "path": "observatory"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Database/DBOperations",
+      "path": "operations"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "ClusterRecommendationsRoute",
+      "path": "recommendations"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "ClusterRegistryRoute",
+      "path": "registry"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Database/DBSchema",
+      "path": "schema"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/Security/SecurityResourcesView",
+      "path": "security"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./layouts/SettingsLayout",
+      "path": "settings"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./components/TopologyEditor/TopologyEditorView",
+      "path": "topology"
+    },
+    {
+      "lazy_imported": false,
+      "page_module": "./layouts/WorkflowsLayout",
+      "path": "workflows"
+    }
+  ]
+}

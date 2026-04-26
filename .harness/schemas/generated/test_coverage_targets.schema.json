@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["thresholds"],
+  "properties": {
+    "thresholds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["glob", "branches", "functions", "lines", "statements"],
+        "properties": {
+          "glob": {"type": "string"},
+          "branches": {"type": "number"},
+          "functions": {"type": "number"},
+          "lines": {"type": "number"},
+          "statements": {"type": "number"}
+        }
+      }
+    }
+  }
+}

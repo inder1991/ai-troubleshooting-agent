@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["endpoints"],
+  "properties": {
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "url_template", "method", "response_type", "file"],
+        "properties": {
+          "name": {"type": "string"},
+          "url_template": {"type": "string"},
+          "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]},
+          "request_type": {"type": "string"},
+          "response_type": {"type": "string"},
+          "file": {"type": "string"}
+        }
+      }
+    }
+  }
+}

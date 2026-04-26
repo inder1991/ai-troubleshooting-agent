@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["routes"],
+  "properties": {
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "page_module", "lazy_imported"],
+        "properties": {
+          "path": {"type": "string"},
+          "page_module": {"type": "string"},
+          "lazy_imported": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

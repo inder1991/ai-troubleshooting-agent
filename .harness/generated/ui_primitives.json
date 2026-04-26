@@ -1,0 +1,28 @@
+{
+  "primitives": [
+    {
+      "exports": [
+        "Badge"
+      ],
+      "file": "frontend/src/components/ui/Badge.tsx",
+      "name": "Badge",
+      "uses_radix": false
+    },
+    {
+      "exports": [
+        "SkeletonStack"
+      ],
+      "file": "frontend/src/components/ui/SkeletonCard.tsx",
+      "name": "SkeletonCard",
+      "uses_radix": false
+    },
+    {
+      "exports": [
+        "ErrorBoundary"
+      ],
+      "file": "frontend/src/components/ui/error-boundary.tsx",
+      "name": "error-boundary",
+      "uses_radix": false
+    }
+  ]
+}

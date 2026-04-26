@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["primitives"],
+  "properties": {
+    "primitives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "exports", "file", "uses_radix"],
+        "properties": {
+          "name": {"type": "string"},
+          "exports": {"type": "array", "items": {"type": "string"}},
+          "file": {"type": "string"},
+          "uses_radix": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}
