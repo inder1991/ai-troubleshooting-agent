@@ -1,0 +1,17 @@
+# Backend Python tooling configuration.
+#
+# Q9: pytest + Hypothesis + diff-cover. Patch coverage gate (≥ 90 %)
+# is enforced by tools/run_validate.py wiring (Sprint H.1a).
+# Q19: mypy strict per-module config lands in Sprint H.0b Story 12.
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+testpaths = ["backend/tests", "tests/harness"]
+markers = [
+    "property: Hypothesis property-based test (slower; skip with -m 'not property').",
+    "slow: integration / slow test (skip with -m 'not slow').",
+]
+addopts = [
+    "--strict-markers",
+    "-q",
+]
