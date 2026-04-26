@@ -75,3 +75,24 @@ def test_make_dry_run_lists_required_targets() -> None:
 def test_generated_readme_warns_no_handediting() -> None:
     text = (REPO_ROOT / ".harness/generated/README.md").read_text()
     assert "DO NOT EDIT" in text, "generated/README.md must warn against hand-editing"
+
+
+def test_agents_md_alias_exists() -> None:
+    """AGENTS.md aliases CLAUDE.md for cross-vendor AI tools."""
+    agents_md = REPO_ROOT / "AGENTS.md"
+    assert agents_md.exists(), "AGENTS.md missing (cross-vendor alias for CLAUDE.md)"
+    if agents_md.is_symlink():
+        assert agents_md.resolve().name == "CLAUDE.md"
+    else:
+        text = agents_md.read_text()
+        assert "CLAUDE.md" in text, (
+            "AGENTS.md is not a symlink and doesn't reference CLAUDE.md"
+        )
+
+
+def test_cursorrules_pointer_exists() -> None:
+    cursorrules = REPO_ROOT / ".cursorrules"
+    assert cursorrules.is_file()
+    text = cursorrules.read_text()
+    assert "CLAUDE.md" in text
+    assert "load_harness" in text or "tools/load_harness" in text

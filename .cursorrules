@@ -1,0 +1,2 @@
+See CLAUDE.md and the nearest CLAUDE.md to the file you're editing.
+For full context: run `python tools/load_harness.py --target <file>`.
