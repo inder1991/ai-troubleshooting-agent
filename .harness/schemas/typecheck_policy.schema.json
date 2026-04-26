@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Q19 typecheck policy",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "mypy_strict_paths": {"type": "array", "items": {"type": "string"}},
+    "tsc_root": {"type": "string"}
+  }
+}

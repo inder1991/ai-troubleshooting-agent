@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["routes"],
+  "properties": {
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["method", "path", "handler", "module", "auth_dep", "rate_limit", "csrf_dep", "request_type", "response_type"],
+        "properties": {
+          "method": {"type": "string"},
+          "path": {"type": "string"},
+          "handler": {"type": "string"},
+          "module": {"type": "string"},
+          "auth_dep": {"type": ["string", "null"]},
+          "rate_limit": {"type": "boolean"},
+          "csrf_dep": {"type": "boolean"},
+          "request_type": {"type": ["string", "null"]},
+          "response_type": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}

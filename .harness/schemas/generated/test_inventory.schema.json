@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["files"],
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "test_count", "hypothesis_count"],
+        "properties": {
+          "path": {"type": "string"},
+          "test_count": {"type": "integer"},
+          "hypothesis_count": {"type": "integer"}
+        }
+      }
+    }
+  }
+}

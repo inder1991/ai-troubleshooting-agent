@@ -1,0 +1,2759 @@
+{
+  "files": [
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/cross_check/test_cross_check_events.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/cross_check/test_metrics_logs.py",
+      "test_count": 19
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/cross_check/test_tracing_metrics.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_confidence_adapter.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_confidence_priors_bias.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_dispatcher.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_eval_gate.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_planner.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_reducer.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_self_consistency.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_signal_extractor.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_signature_fast_path.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_state_adapters.py",
+      "test_count": 15
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_state_isolation.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/orchestration/test_upstream_walk.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_baseline.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_budget.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_cancellation_propagation.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_causal_engine_rules.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_circuit_breaker_wiring.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_code_agent_handoff.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_code_agent_stale_frames.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_confidence_calibrator.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_coverage_gaps.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_critic_ensemble_diversity.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_critic_retriever.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_critic_tool_use.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_elk_pagination.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_incident_graph_bridge.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_incident_graph_edges.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_k8s_agent_handoff.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_k8s_agent_tool_use.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_k8s_pagination.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_k8s_token_rotation.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_log_agent_handoff.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_log_agent_paginate.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_log_agent_tool_use.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_namespace_autodetect_guard.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_pipeline_agent.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_priors_persistence.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_promql_library.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_q12_assert_within_budget.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/test_stack_trace_validator.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/patterns/test_baseline_regression.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/patterns/test_critical_path.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/patterns/test_fan_out.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/patterns/test_n_plus_one.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/patterns/test_retry_cluster.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_agent_integration.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_elk_reconstructor.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_envoy_flags.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_jaeger_backend.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_patterns_runner.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_ranker.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_redactor.py",
+      "test_count": 15
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_summarizer.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/agents/tracing/test_tier_selector.py",
+      "test_count": 17
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_contract_v4_session.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_demo_scenario.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_demo_seed_endpoint.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_feedback_endpoint.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_health.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_health_llm_credential.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_middleware_observability.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_problem.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/api/test_session_auth.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_api.py",
+      "test_count": 15
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_aws_driver.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_batch_controller.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_cloud_store.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_concurrency.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_driver_base.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_mapper.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_models.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_policy_store.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_rate_limiter.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_redaction.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_scheduler.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_sync_engine.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/cloud/test_wal_monitor.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/database/test_engine.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/database/test_outbox_migration.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/errors/test_result.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/eval/test_metrics.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_argocd_client.py",
+      "test_count": 17
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_audit_hook.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_cache.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_commit_endpoint.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_errors.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_jenkins_client.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_models.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_protocol.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_resolver.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/cicd/test_stream_endpoint.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_backend_audit.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_cicd_probe.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_cicd_service_types.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_fernet_require_env_key.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_github_client.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_http_clients.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_http_clients_traceparent.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_http_clients_verify_ssl.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_post_retry.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/integrations/test_profile_store_list_by_service_type.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/learning/test_stubs.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/llm/test_key_resolver.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/network/test_idempotency.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/network/test_retry_after.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/observability/test_logging.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/observability/test_metrics.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/observability/test_redactor.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/observability/test_trace_context.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/observability/test_tracing.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/patterns/test_signatures.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/patterns/test_signatures_additional.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/prompts/test_prompt_discipline.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/prompts/test_registry.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/prompts/test_sanitize.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/storage/test_q12_timed_query.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_adapter_credential_encryption.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_adapter_endpoints.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_adapter_factory.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_adapter_fixes.py",
+      "test_count": 28
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_adapter_registry.py",
+      "test_count": 27
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_adapter_write_ops.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_agent_endpoints.py",
+      "test_count": 17
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_agent_error_handling.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_agent_prompts.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_agent_registry.py",
+      "test_count": 33
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_agent_truncation_visibility.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_aggregate_metrics.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_alert_correlator.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_alert_dedup.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_alert_engine.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_alert_flapping.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_alert_history.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_alert_notification_integration.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_alert_rule_crud.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_alertmanager_webhook.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_api.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_api_auth.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_asn_registry.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_attestation.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_attestation_integration.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_attestation_log.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_attestation_logging.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_attestation_resume.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_auto_mode_nonimpact.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_autodiscovery.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_aws_discovery_adapter.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_bidirectional.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_bulk_actions.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_bulk_operations.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_campaign_confirm.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_campaign_persistence.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_catalog_api.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_causal_engine.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_causal_firewall.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_causal_forest_response.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_causal_invariants.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_causal_linker.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_causal_links.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_causal_links_platform.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_change_agent.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_change_agent_cicd_enrichment.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_chat_tool_calling.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_checkpoint_adapter.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_circuit_breaker.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cisco_adapter.py",
+      "test_count": 15
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cloud_adapters.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cloud_crud.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_agents.py",
+      "test_count": 23
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_client.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_client_new.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_client_platform.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_findings.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_graph.py",
+      "test_count": 26
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_probe.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_routing.py",
+      "test_count": 31
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_state.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cluster_tool_executor.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_code_agent.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_codebase_tools_injection.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_composite_rules.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_confidence_engine.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_confidence_tracking.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_context_guard.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_contract_models.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_contract_registry.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_contract_service.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_contract_validator.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_counter_wrap.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_credential_redaction.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_critic_agent.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_critic_delta.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_cross_repo_tracer.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ctrl_plane_heuristic.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ctrl_plane_platform.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_data_merger.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_adapter_base.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_diagnostic_store.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_endpoints.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_graph.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_graph_v2.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_models.py",
+      "test_count": 18
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_monitor.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_monitor_endpoints.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_profile_store.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_registry.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_db_session.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_deduplicator.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_dependency_parser.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_design_apply.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_design_diff.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_design_lifecycle.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_device_index_cache.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_diagnosis_writeback.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_diagnostic_scope_integration.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_diagnostic_scope_model.py",
+      "test_count": 19
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_diagnostic_store.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_discovery_adapter.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_discovery_concurrency.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_discovery_endpoints.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_discovery_engine.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_discovery_fallback.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_discovery_scheduler_v2.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_dispatch_router.py",
+      "test_count": 18
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_dns_endpoints.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_dns_integration.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_dns_metrics.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_dns_monitor.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_drift_engine.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_drift_management.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_elimination.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_enterprise_graph.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_enterprise_integration.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_enterprise_models.py",
+      "test_count": 74
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_enterprise_pipeline.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_enterprise_store.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_entity_resolver.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_error_handling.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_escalation.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_escalation_integration.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_event_bus.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_event_emitter.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_event_processor.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_event_publishing_repository.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_event_replay.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_event_schema.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_event_store.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_evidence_graph.py",
+      "test_count": 19
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_evidence_handoff.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_evidence_mapper.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_evidence_pin_quality.py",
+      "test_count": 19
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_evidence_pin_v2.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_evidence_pinning.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_evidence_store.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_executor_cancellation.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_executor_concurrency_groups.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_executor_drift.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_executor_failure_policies.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_executor_predicates.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_executor_scheduler.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_executor_timeouts_retries.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_export_endpoints.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_f5_adapter.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_failure_patterns_new.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_failure_patterns_platform.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_feature_flags.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_firewall_adapters.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_firewall_detection.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_firewall_nat.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_fix_approval_state_driven.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_fix_generator.py",
+      "test_count": 20
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_fix_job_queue.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_fix_pipeline_integration.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_fix_race_condition.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_flow_cardinality.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_flow_enhancements.py",
+      "test_count": 18
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_flow_integration.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_flow_receiver.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_flow_sampling.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_flow_stitching.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_governance_api.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_governance_models.py",
+      "test_count": 27
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_graph_logging.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_graph_mutator.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_graph_sync.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_graph_timeout_recovery.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_guard_formatter.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_guard_mode_api.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ha_groups.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ha_validation_endpoint.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ha_validation_unit.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_hardening_integration.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_health_endpoint.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_health_endpoints.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_history_endpoints.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_hypothesis_integration.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_hypothesis_models.py",
+      "test_count": 20
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_hypothesis_response.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_hypothesis_tracker.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_idempotency.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_impact_analyzer.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_import_endpoints.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_infra_detection.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_input_validation.py",
+      "test_count": 51
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_instance_store.py",
+      "test_count": 19
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_integration.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_integration_api.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_integration_pipeline.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_integration_registry.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_intelligent_state.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_intent_parser.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_intent_routing.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_interface_validation.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigate_endpoint.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigation_dag_endpoint.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigation_event_adapter.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigation_executor.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigation_integration.py",
+      "test_count": 28
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigation_router.py",
+      "test_count": 45
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigation_runner.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigation_store.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_investigation_types.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ipam_ingestion.py",
+      "test_count": 33
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ipam_response.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ipam_size_limit.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_job_queue.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_k8s_agent.py",
+      "test_count": 19
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_kafka_bus.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_kg_uses_repository.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_knowledge_graph.py",
+      "test_count": 18
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_knowledge_graph_paths.py",
+      "test_count": 22
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_link_metrics_endpoint.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_lldp_adapter.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_llm_client.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_llm_client_logging.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_llm_logging.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_log_agent.py",
+      "test_count": 221
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_log_processing.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_lttb.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_lttb_integration.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_maintenance_windows.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_manifests_ci.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_memory.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_message_size.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_metrics_agent.py",
+      "test_count": 15
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_metrics_retry.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_metrics_store.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_metrics_timeout.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_mib_registry.py",
+      "test_count": 23
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_migration_002.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_mock_cluster_client.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_mongo_adapter.py",
+      "test_count": 18
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_mongo_read_tools.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_monitor_broadcast.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_monitor_concurrency.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_monitor_endpoints.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_monitor_integration.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_monitor_shutdown.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_monitor_store.py",
+      "test_count": 17
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_monitor_timing.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_nacl_evaluator.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_neighbor_links.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_neo4j_connection.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_neo4j_repository.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_neo4j_schema.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_chat_endpoints.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_chat_store.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_crawler.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_endpoints.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_heuristic.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_integration.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_models.py",
+      "test_count": 35
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_monitor.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_orchestrator.py",
+      "test_count": 18
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_pipeline.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_simulator.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_tool_executor.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_tool_registry.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_network_validation.py",
+      "test_count": 22
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_node_heuristic.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_notification_dispatcher.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_notification_models.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_observability_hooks.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_observation_handler.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_output_schemas.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_pagination.py",
+      "test_count": 31
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_panorama_adapter.py",
+      "test_count": 44
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_pending_action.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_pg_read_tools.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase1_verification_gate.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase2_e2e.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase2_non_impact.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase3_non_impact.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase4_non_impact.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase5_non_impact.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase6_non_impact.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase6_repository.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase6_routes.py",
+      "test_count": 21
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_phase6_service.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_pipeline_capability_wiring.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_pipeline_integration.py",
+      "test_count": 21
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_pipeline_logging.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_postgres_adapter.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_proactive_new.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_proactive_platform.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_profile_loader.py",
+      "test_count": 25
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_prometheus_exporter.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_promote_validation.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_promql_rate_limit_audit.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_protocol_snmp_collector.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_radial_layout.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_rate_limiting.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_reachability_matrix.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_react_base.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_react_budget.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_reconciliation.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_redis_semaphore.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_redis_store.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_remediation.py",
+      "test_count": 17
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_remediation_endpoints.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_remediation_engine.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_remediation_planner.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_remediation_store.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_repo_manager_sparse.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_repository_api_wiring.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_repository_domain.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_repository_interface.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_resource_crud.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_resource_endpoints.py",
+      "test_count": 17
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_resource_ref_parser.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_runner_integrity.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_runner_registry.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_runs_cancel.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_runs_sse.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_schemas.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_scoped_reads.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_search_endpoints.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_secret_store.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_security_crud.py",
+      "test_count": 23
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_security_grading.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_service_dependency.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_session_cleanup.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_session_id_threading.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_session_lifecycle.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_session_replayer.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_signal_extractor.py",
+      "test_count": 28
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_signal_normalizer.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_signal_normalizer_new.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_signal_normalizer_platform.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_snmp_collector.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_snmp_endpoints.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_snmp_fixes.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_sqlite_repository.py",
+      "test_count": 26
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_staleness_detector.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_state_driven_attestation.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_static_validators.py",
+      "test_count": 29
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_status_pending_action.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_store_error_handling.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_store_response_logging.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_structured_logging.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_structured_output_agents.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_supervisor.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_supervisor_investigation.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_supervisor_v5.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_synthesis_report.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_synthesizer.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_synthesizer_enhanced.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_synthesizer_error_handling.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_synthesizer_hardening.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_synthesizer_logging.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_synthesizer_prompt.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_syslog_aggregation.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_syslog_ipv6.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_syslog_listener.py",
+      "test_count": 16
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_syslog_parsing.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_teams_channel.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_timeout_handler.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_token_budget.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_cache.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_executor.py",
+      "test_count": 45
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_executor_extended.py",
+      "test_count": 14
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_executor_input_validation.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_executor_logging.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_executor_truncation.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_executor_validation.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_guard.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_result.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_subsets.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_subsets_platform.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_tool_timeouts.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_cache.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_concurrency.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_diff.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_events.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_group_filter.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_overview.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_promote.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_pruning.py",
+      "test_count": 21
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_query_endpoints.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_resolver.py",
+      "test_count": 8
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_store_crud.py",
+      "test_count": 43
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_v5_api.py",
+      "test_count": 49
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_v5_websocket.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_validation.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_topology_versioning.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_traced_node.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_traced_node_defaults.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_traced_node_logging.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_traceroute_hop.py",
+      "test_count": 12
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_traceroute_semaphore.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_trap_listener.py",
+      "test_count": 17
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_udp_buffer.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_v4_health_endpoint.py",
+      "test_count": 1
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_v5_data_parity.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_v5_layout_integration.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_validation_endpoint.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_war_room_models.py",
+      "test_count": 24
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_websocket_publisher.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_winner_flattening.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflow.py",
+      "test_count": 5
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflow_compiler.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflow_evaluator.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflow_models.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflow_repository.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflow_state_machine.py",
+      "test_count": 6
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflows_feature_flag.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflows_list_versions.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflows_run_lock.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflows_run_path.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflows_save_path.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_workflows_startup.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_ws_pubsub.py",
+      "test_count": 2
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/test_zscaler_adapter.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/tools/test_elk_safety.py",
+      "test_count": 13
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/tools/test_promql_safety.py",
+      "test_count": 26
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/tools/test_result_cache.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/tools/test_tool_executor_middleware.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/utils/test_credential_redactor.py",
+      "test_count": 21
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/utils/test_http.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workers/test_main.py",
+      "test_count": 9
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workers/test_trace_baseline_populator.py",
+      "test_count": 11
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workflows/test_executor_outbox_integration.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workflows/test_investigation_executor_idempotency.py",
+      "test_count": 3
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workflows/test_outbox_relay.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workflows/test_outbox_writer.py",
+      "test_count": 4
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workflows/test_resume.py",
+      "test_count": 10
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workflows/test_run_lock.py",
+      "test_count": 7
+    },
+    {
+      "hypothesis_count": 0,
+      "path": "backend/tests/workflows/test_schema_version.py",
+      "test_count": 29
+    }
+  ]
+}

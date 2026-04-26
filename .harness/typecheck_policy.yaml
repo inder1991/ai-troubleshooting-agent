@@ -1,0 +1,8 @@
+mypy_strict_paths:
+  - backend/src/storage
+  - backend/src/learning
+  - backend/src/models
+  - backend/src/api
+  - backend/src/agents
+
+tsc_root: frontend

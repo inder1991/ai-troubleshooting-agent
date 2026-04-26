@@ -41,6 +41,7 @@ POLICY_YAML_NAMES = {
     "logging_policy.yaml": "logging_policy",
     "error_handling_policy.yaml": "error_handling_policy",
     "rule_coverage_exemptions.yaml": "rule_coverage_exemptions",
+    "typecheck_policy.yaml": "typecheck_policy",
 }
 
 

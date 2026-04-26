@@ -1,0 +1,10 @@
+{
+  "rationale": "Q19",
+  "required_paths": [
+    "backend/src/agents",
+    "backend/src/api",
+    "backend/src/learning",
+    "backend/src/models",
+    "backend/src/storage"
+  ]
+}

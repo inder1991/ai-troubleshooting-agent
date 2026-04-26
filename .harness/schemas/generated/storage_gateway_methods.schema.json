@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["methods"],
+  "properties": {
+    "methods": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "args", "return_type", "audited", "timed"],
+        "properties": {
+          "name": {"type": "string"},
+          "kind": {"type": "string", "enum": ["read", "write"]},
+          "return_type": {"type": "string"},
+          "audited": {"type": "boolean"},
+          "timed": {"type": "boolean"},
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "type"],
+              "properties": {
+                "name": {"type": "string"},
+                "type": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
