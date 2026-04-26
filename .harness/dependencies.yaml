@@ -1,0 +1,121 @@
+# Q11 — hybrid dependency policy.
+#
+# Spine paths (whitelist enforcement): backend/src/{api,storage,models,agents}
+# + frontend/src/{services/api,hooks}. New deps on these paths require an
+# explicit allow-list entry here AND an ADR under docs/decisions/.
+#
+# Global blacklist: hard ban regardless of path. Each entry codifies a
+# locked Q-decision (Q1 styling, Q2 state, Q3 HTTP, Q5 testing, Q7 async).
+#
+# Audit: pip-audit + npm audit run only when manifest files diff
+# (cheap, since most PRs don't touch dependencies). Lockfiles are
+# always committed.
+
+version: 1
+
+spine_paths:
+  backend:
+    - backend/src/api
+    - backend/src/storage
+    - backend/src/models
+    - backend/src/agents
+  frontend:
+    - frontend/src/services/api
+    - frontend/src/hooks
+
+whitelist:
+  backend_spine:
+    # Web framework + async
+    - fastapi
+    - uvicorn
+    - httpx
+    - python-multipart
+    # DB + migrations
+    - sqlmodel
+    - sqlalchemy
+    - aiosqlite
+    - alembic
+    # Validation + typing
+    - pydantic
+    - pydantic-settings
+    # Observability
+    - structlog
+    - opentelemetry-api
+    - opentelemetry-sdk
+    - opentelemetry-instrumentation-fastapi
+    - opentelemetry-instrumentation-httpx
+    - opentelemetry-instrumentation-sqlalchemy
+    # Reliability
+    - tenacity
+    - slowapi
+    # LLM (constrained set — vendor lock-in is intentional)
+    - anthropic
+    - langchain-core
+    - langgraph
+    # Stdlib-aliased
+    - typing-extensions
+    - python-dateutil
+  frontend_spine:
+    - react
+    - react-dom
+    - react-router-dom
+    - "@tanstack/react-query"
+    - "@radix-ui/react-slot"
+    - "@radix-ui/react-dialog"
+    - clsx
+    - tailwind-merge
+    - zod
+
+blacklist:
+  global:
+    # Q1 — Tailwind only (CSS-in-JS banned)
+    - styled-components
+    - "@emotion/styled"
+    - "@emotion/react"
+    - "@stitches/react"
+    - "@vanilla-extract/css"
+    - "@linaria/core"
+    # Q2 — TanStack Query + Context only (alternative state mgmt banned)
+    - redux
+    - "@reduxjs/toolkit"
+    - mobx
+    - mobx-react-lite
+    - recoil
+    - jotai
+    # Q3 — typed apiClient only (axios banned)
+    - axios
+    # Q4 — shadcn pattern only (third-party UI kits banned)
+    - "@mui/material"
+    - "@chakra-ui/react"
+    - "@mantine/core"
+    - react-bootstrap
+    - antd
+    - semantic-ui-react
+    # Q5 — Vitest only (jest/cypress/mocha banned)
+    - jest
+    - "@types/jest"
+    - mocha
+    - cypress
+    - enzyme
+    # Q7 — httpx.AsyncClient only (sync HTTP / aiohttp banned)
+    - requests
+    - aiohttp
+    # Modernization debt
+    - moment
+    # Server frameworks not used (Q7 locks FastAPI)
+    - django
+    - flask
+
+audit:
+  trigger_paths:
+    - backend/requirements.txt
+    - backend/pyproject.toml
+    - frontend/package.json
+    - frontend/package-lock.json
+  backend_command: "pip-audit -r backend/requirements.txt"
+  frontend_command: "npm audit --prefix frontend --audit-level=high"
+  block_on:
+    - critical
+    - high
+  warn_on:
+    - moderate
