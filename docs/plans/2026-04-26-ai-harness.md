@@ -65,6 +65,7 @@ These govern HOW the harness works. Stack-specific rules (Q1–Q19) live in §2.
 | **H-23** | Validator output includes a `suggestion` field — the AI uses it to self-correct. |
 | **H-24** | The harness has its own test suite under `tests/harness/`. Every check has paired violation + compliant fixtures. |
 | **H-25** | Design for failure first. Every check/generator/loader function answers in its docstring: missing input? malformed input? upstream failed? |
+| **H-26** | Harness substrate (`.harness/checks`, `.harness/generators`, `tools/load_harness.py`, `tools/run_validate.py`, `tools/run_harness_regen.py`, init bootstrap) is consumed via pinned tag from the standalone `ai-harness` repo. Never hand-edit those paths in this repo; raise PRs against the standalone repo, get them tagged, then bump `.harness-version` + `make harness-sync`. Project-specific policy yamls and per-directory `CLAUDE.md` remain owned in this repo. |
 
 ---
 
@@ -362,8 +363,9 @@ Sprint capacity: 2 engineers × 13 pts × 80% = **~26 pts/sprint**. Actual loade
 | **H.1c** | 2 weeks | Security + Docs + Logging + Errors checks: security_policy (split into 2 stories), documentation_policy, logging_policy, error_handling_policy | ~30 |
 | **H.1d** | 1 week | typecheck_policy + harness self-test convention checks (claude_md_size_cap, owners_present already shipped in H.0a; this sprint adds typecheck enforcement + cross-check harness self-consistency) | ~20 |
 | **H.2** | 2 weeks | All 14 generators + Claude Code session-start hook + harness-init template + final docs + onboarding polish | ~32 |
+| **H.3** | 1 week | Extract harness substrate to standalone `github.com/<owner>/ai-harness` repo; DebugDuck consumes via pinned `.harness-version` + `make harness-sync` (Option B distribution model) | ~15 |
 
-**Total: 7 sprints, ~13 weeks (~3 months).**
+**Total: 8 sprints, ~14 weeks (~3.5 months).**
 
 ### 5.1 Sprint H.0a — Schema & Substrate
 
