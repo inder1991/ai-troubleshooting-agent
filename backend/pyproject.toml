@@ -15,3 +15,20 @@ addopts = [
     "--strict-markers",
     "-q",
 ]
+
+# Q15 — pydocstyle (D rules) on contract surfaces. Tests + private
+# helpers exempt; documentation_policy.py (Sprint H.1c) enforces the
+# spine paths via a richer check.
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "D"]
+ignore = [
+    "D100",  # Missing docstring in public module — too noisy for v1
+    "D104",  # Missing docstring in public package
+    "D203",  # 1 blank line required before docstring (conflicts with D211)
+    "D213",  # Multi-line docstring summary should start at the second line
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]                  # tests don't need docstrings
+"backend/tests/**" = ["D"]
+"backend/src/**/_*.py" = ["D"]      # private helpers exempt
