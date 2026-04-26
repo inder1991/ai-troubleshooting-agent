@@ -111,11 +111,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Agent1/Report.tsx",
-    "line": 252,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Agent1/Report.tsx",
     "line": 148,
     "rule": "Q1.classname-needs-cn"
   },
@@ -123,6 +118,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Agent1/Report.tsx",
     "line": 157,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Agent1/Report.tsx",
+    "line": 252,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Agent2/CodebaseMappingCard.tsx",
@@ -261,6 +261,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentGrid.tsx",
+    "line": 41,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentGrid.tsx",
     "line": 54,
     "rule": "Q1.no-inline-style-static"
   },
@@ -276,6 +281,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentGrid.tsx",
+    "line": 64,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentGrid.tsx",
     "line": 81,
     "rule": "Q1.no-inline-style-static"
   },
@@ -288,16 +298,6 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentGrid.tsx",
     "line": 83,
     "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentGrid.tsx",
-    "line": 41,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentGrid.tsx",
-    "line": 64,
-    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentMatrixFooter.tsx",
@@ -386,6 +386,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentMatrixView.tsx",
+    "line": 171,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentMatrixView.tsx",
     "line": 172,
     "rule": "Q1.no-inline-style-static"
   },
@@ -393,11 +398,6 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentMatrixView.tsx",
     "line": 181,
     "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/AgentMatrixView.tsx",
-    "line": 171,
-    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/AgentMatrix/CoreConfigPanel.tsx",
@@ -796,11 +796,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/LedgerTriggerTab.tsx",
-    "line": 101,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/LedgerTriggerTab.tsx",
     "line": 13,
     "rule": "Q1.classname-needs-cn"
   },
@@ -820,8 +815,8 @@
     "rule": "Q1.classname-needs-cn"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/MarkdownBubble.tsx",
-    "line": 123,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/LedgerTriggerTab.tsx",
+    "line": 101,
     "rule": "Q1.no-inline-style-static"
   },
   {
@@ -833,6 +828,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/MarkdownBubble.tsx",
     "line": 122,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/MarkdownBubble.tsx",
+    "line": 123,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/MarkdownBubble.tsx",
@@ -861,13 +861,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/SlashCommandMenu.tsx",
-    "line": 69,
-    "rule": "Q1.no-inline-style-static"
+    "line": 59,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/SlashCommandMenu.tsx",
-    "line": 59,
-    "rule": "Q1.classname-needs-cn"
+    "line": 69,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Chat/TerminalCodeBlock.tsx",
@@ -996,16 +996,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/HypothesisCard.tsx",
-    "line": 102,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/HypothesisCard.tsx",
-    "line": 161,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/HypothesisCard.tsx",
     "line": 65,
     "rule": "Q1.classname-needs-cn"
   },
@@ -1013,6 +1003,16 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/HypothesisCard.tsx",
     "line": 70,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/HypothesisCard.tsx",
+    "line": 102,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/HypothesisCard.tsx",
+    "line": 161,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/IssuePriorityPanel.tsx",
@@ -1136,13 +1136,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterRegistry/ClusterRecommendationsPage.tsx",
-    "line": 197,
-    "rule": "Q1.no-inline-style-static"
+    "line": 186,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterRegistry/ClusterRecommendationsPage.tsx",
-    "line": 186,
-    "rule": "Q1.classname-needs-cn"
+    "line": 197,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterRegistry/ClusterRegistryPage.tsx",
@@ -1431,6 +1431,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Database/DBSchema.tsx",
+    "line": 184,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Database/DBSchema.tsx",
     "line": 210,
     "rule": "Q1.no-inline-style-static"
   },
@@ -1438,11 +1443,6 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Database/DBSchema.tsx",
     "line": 234,
     "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Database/DBSchema.tsx",
-    "line": 184,
-    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Database/DatabaseLayout.tsx",
@@ -1461,13 +1461,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Foreman/ForemanHUD.tsx",
-    "line": 119,
-    "rule": "Q1.no-inline-style-static"
+    "line": 114,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Foreman/ForemanHUD.tsx",
-    "line": 114,
-    "rule": "Q1.classname-needs-cn"
+    "line": 119,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Foreman/ForemanHUD.tsx",
@@ -1576,11 +1576,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/ArchitectureTab.tsx",
-    "line": 351,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/ArchitectureTab.tsx",
     "line": 271,
     "rule": "Q1.classname-needs-cn"
   },
@@ -1590,8 +1585,23 @@
     "rule": "Q1.classname-needs-cn"
   },
   {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/ArchitectureTab.tsx",
+    "line": 351,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/HowItWorksSection.tsx",
     "line": 37,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/InvestigationFlowTab.tsx",
+    "line": 129,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/InvestigationFlowTab.tsx",
+    "line": 132,
     "rule": "Q1.classname-needs-cn"
   },
   {
@@ -1603,16 +1613,6 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/InvestigationFlowTab.tsx",
     "line": 161,
     "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/InvestigationFlowTab.tsx",
-    "line": 129,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/InvestigationFlowTab.tsx",
-    "line": 132,
-    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/HowItWorks/InvestigationFlowTab.tsx",
@@ -1656,26 +1656,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
-    "line": 68,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
-    "line": 77,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
-    "line": 85,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
-    "line": 93,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
     "line": 52,
     "rule": "Q1.classname-needs-cn"
   },
@@ -1691,13 +1671,33 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
+    "line": 68,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
+    "line": 77,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
     "line": 85,
     "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
+    "line": 85,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
     "line": 93,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/MetricStrip.tsx",
+    "line": 93,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/RecentAlerts.tsx",
@@ -1717,11 +1717,16 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/WeeklyStats.tsx",
     "line": 50,
-    "rule": "Q1.no-inline-style-static"
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Home/WeeklyStats.tsx",
     "line": 50,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/HowItWorks/DemoScenarioTab.tsx",
+    "line": 129,
     "rule": "Q1.classname-needs-cn"
   },
   {
@@ -1743,11 +1748,6 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/HowItWorks/DemoScenarioTab.tsx",
     "line": 260,
     "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/HowItWorks/DemoScenarioTab.tsx",
-    "line": 129,
-    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/HowItWorks/DuckAvatar.tsx",
@@ -1981,8 +1981,23 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 153,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
     "line": 225,
     "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 289,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 297,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
@@ -1991,8 +2006,28 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 303,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
     "line": 304,
     "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 308,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 327,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 356,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
@@ -2006,8 +2041,23 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 376,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
     "line": 400,
     "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 418,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 423,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
@@ -2016,8 +2066,18 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 428,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
     "line": 446,
     "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
+    "line": 468,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
@@ -2043,66 +2103,6 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
     "line": 603,
     "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 153,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 289,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 297,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 303,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 308,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 327,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 356,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 376,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 418,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 423,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 428,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
-    "line": 468,
-    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/AISupervisor.tsx",
@@ -2161,26 +2161,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
-    "line": 151,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
-    "line": 260,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
-    "line": 264,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
-    "line": 304,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
     "line": 95,
     "rule": "Q1.classname-needs-cn"
   },
@@ -2196,8 +2176,28 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
+    "line": 151,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
     "line": 170,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
+    "line": 260,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
+    "line": 264,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
+    "line": 304,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/ContextScope.tsx",
@@ -2256,116 +2256,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 501,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1034,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1064,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1065,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1293,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1304,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1314,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1361,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1363,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1396,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1408,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1428,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1468,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1519,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1573,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1614,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1734,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1741,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1807,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1835,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1854,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
-    "line": 1972,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 475,
     "rule": "Q1.classname-needs-cn"
   },
@@ -2373,6 +2263,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 478,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 501,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
@@ -2426,6 +2321,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1034,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1035,
     "rule": "Q1.classname-needs-cn"
   },
@@ -2438,6 +2338,16 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1064,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1064,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1065,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
@@ -2456,8 +2366,38 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1293,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1304,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1314,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1360,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1361,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1363,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1396,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
@@ -2466,8 +2406,18 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1408,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1412,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1428,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
@@ -2476,8 +2426,18 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1468,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1519,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1519,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
@@ -2491,6 +2451,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1573,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1574,
     "rule": "Q1.classname-needs-cn"
   },
@@ -2498,6 +2463,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1614,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1614,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
@@ -2526,8 +2496,28 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1734,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1741,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1807,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1814,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1835,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
@@ -2536,8 +2526,18 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1854,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
     "line": 1855,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
+    "line": 1972,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceFindings.tsx",
@@ -2566,6 +2566,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 98,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
     "line": 104,
     "rule": "Q1.no-inline-style-static"
   },
@@ -2576,63 +2581,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 193,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 635,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 775,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 779,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 847,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 851,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 883,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 974,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 1172,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 1228,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
-    "line": 98,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
     "line": 191,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 193,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
@@ -2711,6 +2666,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 635,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
     "line": 643,
     "rule": "Q1.classname-needs-cn"
   },
@@ -2736,6 +2696,16 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 775,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 779,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
     "line": 783,
     "rule": "Q1.classname-needs-cn"
   },
@@ -2746,8 +2716,23 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 847,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 851,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
     "line": 882,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 883,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
@@ -2758,6 +2743,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
     "line": 955,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 974,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
@@ -2773,6 +2763,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
     "line": 1171,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 1172,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
@@ -2796,6 +2791,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
+    "line": 1228,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/EvidenceStack.tsx",
     "line": 1232,
     "rule": "Q1.classname-needs-cn"
   },
@@ -2816,6 +2816,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
+    "line": 40,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
     "line": 119,
     "rule": "Q1.no-inline-style-static"
   },
@@ -2823,6 +2828,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
     "line": 254,
     "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
+    "line": 257,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
@@ -2841,6 +2851,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
+    "line": 411,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
     "line": 412,
     "rule": "Q1.no-inline-style-static"
   },
@@ -2853,6 +2868,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
     "line": 500,
     "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
+    "line": 552,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
@@ -2881,6 +2901,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
+    "line": 634,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
     "line": 635,
     "rule": "Q1.no-inline-style-static"
   },
@@ -2890,28 +2915,8 @@
     "rule": "Q1.no-inline-style-static"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
-    "line": 40,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
-    "line": 257,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
-    "line": 411,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
-    "line": 552,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/FixPipelinePanel.tsx",
-    "line": 634,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisEvidenceMap.tsx",
+    "line": 62,
     "rule": "Q1.classname-needs-cn"
   },
   {
@@ -2923,11 +2928,6 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisEvidenceMap.tsx",
     "line": 71,
     "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisEvidenceMap.tsx",
-    "line": 62,
-    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisEvidenceMap.tsx",
@@ -2966,11 +2966,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisScoreboard.tsx",
-    "line": 99,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisScoreboard.tsx",
     "line": 50,
     "rule": "Q1.classname-needs-cn"
   },
@@ -2978,6 +2973,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisScoreboard.tsx",
     "line": 66,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisScoreboard.tsx",
+    "line": 99,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/HypothesisScoreboard.tsx",
@@ -3026,13 +3026,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/InvestigationLog.tsx",
-    "line": 517,
-    "rule": "Q1.no-inline-style-static"
+    "line": 428,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/InvestigationLog.tsx",
-    "line": 428,
-    "rule": "Q1.classname-needs-cn"
+    "line": 517,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/MetricEntry.tsx",
@@ -3048,6 +3048,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
     "line": 78,
     "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
+    "line": 91,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
@@ -3076,6 +3081,16 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
+    "line": 342,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
+    "line": 374,
+    "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
     "line": 410,
     "rule": "Q1.no-inline-style-static"
   },
@@ -3096,31 +3111,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
-    "line": 772,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
-    "line": 812,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
-    "line": 91,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
-    "line": 342,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
-    "line": 374,
-    "rule": "Q1.classname-needs-cn"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
     "line": 555,
     "rule": "Q1.classname-needs-cn"
   },
@@ -3128,6 +3118,16 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
     "line": 591,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
+    "line": 772,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
+    "line": 812,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/PostMortemDossierView.tsx",
@@ -3146,23 +3146,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
-    "line": 156,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
-    "line": 234,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
-    "line": 246,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
     "line": 144,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
+    "line": 156,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
@@ -3173,6 +3163,16 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
     "line": 224,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
+    "line": 234,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RemediationProgressBar.tsx",
+    "line": 246,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/RetestVerdictBlock.tsx",
@@ -3261,16 +3261,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/AgentFindingCard.tsx",
-    "line": 100,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/AgentFindingCard.tsx",
-    "line": 114,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/AgentFindingCard.tsx",
     "line": 78,
     "rule": "Q1.classname-needs-cn"
   },
@@ -3278,6 +3268,16 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/AgentFindingCard.tsx",
     "line": 81,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/AgentFindingCard.tsx",
+    "line": 100,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/AgentFindingCard.tsx",
+    "line": 114,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/AgentFindingCard.tsx",
@@ -3301,18 +3301,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/ClosureStepCard.tsx",
-    "line": 31,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/ClosureStepCard.tsx",
-    "line": 42,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/ClosureStepCard.tsx",
     "line": 21,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/ClosureStepCard.tsx",
+    "line": 31,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/ClosureStepCard.tsx",
@@ -3323,6 +3318,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/ClosureStepCard.tsx",
     "line": 40,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/ClosureStepCard.tsx",
+    "line": 42,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/ClosureStepCard.tsx",
@@ -3337,11 +3337,6 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/EvidenceGraphView.tsx",
     "line": 62,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/EvidencePinCard.tsx",
-    "line": 149,
     "rule": "Q1.no-inline-style-static"
   },
   {
@@ -3363,6 +3358,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/EvidencePinCard.tsx",
     "line": 99,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/EvidencePinCard.tsx",
+    "line": 149,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/cards/PromQLRunResult.tsx",
@@ -3686,16 +3686,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Layout/SidebarNav.tsx",
-    "line": 374,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Layout/SidebarNav.tsx",
-    "line": 435,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Layout/SidebarNav.tsx",
     "line": 252,
     "rule": "Q1.classname-needs-cn"
   },
@@ -3741,6 +3731,16 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Layout/SidebarNav.tsx",
+    "line": 374,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Layout/SidebarNav.tsx",
+    "line": 435,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Layout/SidebarNav.tsx",
     "line": 453,
     "rule": "Q1.classname-needs-cn"
   },
@@ -3778,6 +3778,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/AdapterInstanceForm.tsx",
     "line": 309,
     "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/AdapterInstanceForm.tsx",
+    "line": 316,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/AdapterInstanceForm.tsx",
@@ -3843,11 +3848,6 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/AdapterInstanceForm.tsx",
     "line": 526,
     "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/AdapterInstanceForm.tsx",
-    "line": 316,
-    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/AddDeviceForm.tsx",
@@ -6936,13 +6936,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/NetworkAdaptersView.tsx",
-    "line": 191,
-    "rule": "Q1.no-inline-style-static"
+    "line": 189,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/NetworkAdaptersView.tsx",
-    "line": 189,
-    "rule": "Q1.classname-needs-cn"
+    "line": 191,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/NetworkAdaptersView.tsx",
@@ -8611,16 +8611,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Observatory/DriftEventsList.tsx",
-    "line": 52,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Observatory/DriftEventsList.tsx",
-    "line": 53,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Observatory/DriftEventsList.tsx",
     "line": 53,
     "rule": "Q1.no-inline-style-static"
   },
@@ -8882,11 +8872,6 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Observatory/TrafficFlowsTab.tsx",
     "line": 118,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Observatory/TrafficFlowsTab.tsx",
-    "line": 119,
     "rule": "Q1.no-inline-style-static"
   },
   {
@@ -10056,17 +10041,12 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Sessions/SessionTable.tsx",
-    "line": 130,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Sessions/SessionTable.tsx",
     "line": 104,
     "rule": "Q1.classname-needs-cn"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/CloudProvidersSection.tsx",
-    "line": 709,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Sessions/SessionTable.tsx",
+    "line": 130,
     "rule": "Q1.no-inline-style-static"
   },
   {
@@ -10146,6 +10126,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/CloudProvidersSection.tsx",
+    "line": 709,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/CloudProvidersSection.tsx",
     "line": 716,
     "rule": "Q1.classname-needs-cn"
   },
@@ -10221,26 +10206,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
-    "line": 274,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
-    "line": 292,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
-    "line": 427,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
-    "line": 572,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
     "line": 145,
     "rule": "Q1.classname-needs-cn"
   },
@@ -10256,8 +10221,18 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
+    "line": 274,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
     "line": 291,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
+    "line": 292,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
@@ -10296,6 +10271,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
+    "line": 427,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
     "line": 443,
     "rule": "Q1.classname-needs-cn"
   },
@@ -10323,6 +10303,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
     "line": 557,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/GlobalIntegrationsSection.tsx",
+    "line": 572,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Settings/IntegrationHub.tsx",
@@ -12031,16 +12016,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/TopologyToolbar.tsx",
-    "line": 162,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/TopologyToolbar.tsx",
-    "line": 168,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/TopologyToolbar.tsx",
     "line": 73,
     "rule": "Q1.classname-needs-cn"
   },
@@ -12073,6 +12048,16 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/TopologyToolbar.tsx",
     "line": 161,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/TopologyToolbar.tsx",
+    "line": 162,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/TopologyToolbar.tsx",
+    "line": 168,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/VPCNode.tsx",
@@ -12316,13 +12301,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/banner/BannerRow.tsx",
-    "line": 86,
-    "rule": "Q1.no-inline-style-static"
+    "line": 45,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/banner/BannerRow.tsx",
-    "line": 45,
-    "rule": "Q1.classname-needs-cn"
+    "line": 86,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/banner/BannerRow.tsx",
@@ -12391,13 +12376,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shared/ActivityFeedRow.tsx",
-    "line": 81,
-    "rule": "Q1.no-inline-style-static"
+    "line": 77,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shared/ActivityFeedRow.tsx",
-    "line": 77,
-    "rule": "Q1.classname-needs-cn"
+    "line": 81,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shared/SkeletonLoader.tsx",
@@ -12446,13 +12431,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/AnchorToolbar.tsx",
-    "line": 97,
-    "rule": "Q1.no-inline-style-static"
+    "line": 80,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/AnchorToolbar.tsx",
-    "line": 80,
-    "rule": "Q1.classname-needs-cn"
+    "line": 97,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/AnchorToolbar.tsx",
@@ -12481,13 +12466,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/PaneDrawer.tsx",
-    "line": 95,
-    "rule": "Q1.no-inline-style-static"
+    "line": 94,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/PaneDrawer.tsx",
-    "line": 94,
-    "rule": "Q1.classname-needs-cn"
+    "line": 95,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/StickyStack.tsx",
@@ -12496,13 +12481,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/TruncatedLabel.tsx",
-    "line": 78,
-    "rule": "Q1.no-inline-style-static"
+    "line": 55,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/TruncatedLabel.tsx",
-    "line": 55,
-    "rule": "Q1.classname-needs-cn"
+    "line": 78,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/shell/__tests__/PaneDrawer.test.tsx",
@@ -12526,16 +12511,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/ErrorBanner.tsx",
-    "line": 27,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/ErrorBanner.tsx",
-    "line": 53,
-    "rule": "Q1.no-inline-style-static"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/ErrorBanner.tsx",
     "line": 24,
     "rule": "Q1.classname-needs-cn"
   },
@@ -12546,6 +12521,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/ErrorBanner.tsx",
+    "line": 27,
+    "rule": "Q1.no-inline-style-static"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/ErrorBanner.tsx",
     "line": 31,
     "rule": "Q1.classname-needs-cn"
   },
@@ -12553,6 +12533,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/ErrorBanner.tsx",
     "line": 35,
     "rule": "Q1.classname-needs-cn"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/ErrorBanner.tsx",
+    "line": 53,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/ErrorBoundary.tsx",
@@ -12566,13 +12551,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/HoldToConfirm.tsx",
-    "line": 82,
-    "rule": "Q1.no-inline-style-static"
+    "line": 68,
+    "rule": "Q1.classname-needs-cn"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/HoldToConfirm.tsx",
-    "line": 68,
-    "rule": "Q1.classname-needs-cn"
+    "line": 82,
+    "rule": "Q1.no-inline-style-static"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ui/SkeletonCard.tsx",

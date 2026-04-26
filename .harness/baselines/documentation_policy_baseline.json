@@ -1,5 +1,220 @@
 [
   {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/accessibility_policy.py",
+    "line": 147,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/accessibility_policy.py",
+    "line": 168,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/audit_emission.py",
+    "line": 92,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/audit_emission.py",
+    "line": 113,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_async_correctness.py",
+    "line": 147,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_async_correctness.py",
+    "line": 172,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_db_layer.py",
+    "line": 201,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_db_layer.py",
+    "line": 226,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_testing.py",
+    "line": 253,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_testing.py",
+    "line": 297,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_validation_contracts.py",
+    "line": 181,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_validation_contracts.py",
+    "line": 203,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/claude_md_size_cap.py",
+    "line": 29,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/claude_md_size_cap.py",
+    "line": 50,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/contract_typed.py",
+    "line": 126,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/contract_typed.py",
+    "line": 147,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/conventions_policy.py",
+    "line": 141,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/conventions_policy.py",
+    "line": 162,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/dependency_policy.py",
+    "line": 177,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/dependency_policy.py",
+    "line": 228,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_data_layer.py",
+    "line": 182,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_data_layer.py",
+    "line": 203,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_routing.py",
+    "line": 134,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_routing.py",
+    "line": 155,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_style_system.py",
+    "line": 184,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_style_system.py",
+    "line": 205,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_testing.py",
+    "line": 196,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_testing.py",
+    "line": 221,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_ui_primitives.py",
+    "line": 142,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_ui_primitives.py",
+    "line": 163,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/output_format_conformance.py",
+    "line": 95,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/owners_present.py",
+    "line": 30,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/owners_present.py",
+    "line": 70,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/performance_budgets.py",
+    "line": 134,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/performance_budgets.py",
+    "line": 179,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_a.py",
+    "line": 237,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_a.py",
+    "line": 260,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_b.py",
+    "line": 210,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_b.py",
+    "line": 232,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/storage_isolation.py",
+    "line": 71,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/storage_isolation.py",
+    "line": 92,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/todo_in_prod.py",
+    "line": 82,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/todo_in_prod.py",
+    "line": 103,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/assistant_endpoints.py",
     "line": 12,
     "rule": "Q15.spine-docstring-required"
@@ -101,7 +316,32 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 126,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 135,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
     "line": 141,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 158,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 173,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 180,
     "rule": "Q15.spine-docstring-required"
   },
   {
@@ -127,31 +367,6 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
     "line": 734,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
-    "line": 126,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
-    "line": 135,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
-    "line": 158,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
-    "line": 173,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
-    "line": 180,
     "rule": "Q15.spine-docstring-required"
   },
   {
@@ -551,6 +766,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 152,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
     "line": 174,
     "rule": "Q15.spine-docstring-required"
   },
@@ -592,11 +812,6 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
     "line": 244,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
-    "line": 152,
     "rule": "Q15.spine-docstring-required"
   },
   {
@@ -951,6 +1166,21 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 19,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 30,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 37,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
     "line": 43,
     "rule": "Q15.spine-docstring-required"
   },
@@ -1011,32 +1241,17 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 121,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
     "line": 128,
     "rule": "Q15.spine-docstring-required"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
     "line": 133,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
-    "line": 19,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
-    "line": 30,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
-    "line": 37,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
-    "line": 121,
     "rule": "Q15.spine-docstring-required"
   },
   {
@@ -1416,6 +1631,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2966,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
     "line": 3026,
     "rule": "Q15.spine-docstring-required"
   },
@@ -1442,11 +1662,6 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
     "line": 3074,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 2966,
     "rule": "Q15.spine-docstring-required"
   },
   {
@@ -1847,276 +2062,6 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/ws_pubsub.py",
     "line": 32,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/generate_typecheck_baseline.py",
-    "line": 65,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/generate_typecheck_baseline.py",
-    "line": 96,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
-    "line": 46,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
-    "line": 68,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
-    "line": 110,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
-    "line": 157,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/run_validate.py",
-    "line": 97,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/validate_dependencies_yaml.py",
-    "line": 35,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/accessibility_policy.py",
-    "line": 147,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/accessibility_policy.py",
-    "line": 168,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/audit_emission.py",
-    "line": 92,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/audit_emission.py",
-    "line": 113,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_async_correctness.py",
-    "line": 147,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_async_correctness.py",
-    "line": 172,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_db_layer.py",
-    "line": 201,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_db_layer.py",
-    "line": 226,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_testing.py",
-    "line": 253,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_testing.py",
-    "line": 297,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_validation_contracts.py",
-    "line": 181,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_validation_contracts.py",
-    "line": 203,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/claude_md_size_cap.py",
-    "line": 29,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/claude_md_size_cap.py",
-    "line": 50,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/contract_typed.py",
-    "line": 126,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/contract_typed.py",
-    "line": 147,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/conventions_policy.py",
-    "line": 141,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/conventions_policy.py",
-    "line": 162,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/dependency_policy.py",
-    "line": 177,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/dependency_policy.py",
-    "line": 228,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/documentation_policy.py",
-    "line": 202,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/documentation_policy.py",
-    "line": 229,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_data_layer.py",
-    "line": 182,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_data_layer.py",
-    "line": 203,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_routing.py",
-    "line": 134,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_routing.py",
-    "line": 155,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_style_system.py",
-    "line": 184,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_style_system.py",
-    "line": 205,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_testing.py",
-    "line": 196,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_testing.py",
-    "line": 221,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_ui_primitives.py",
-    "line": 142,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_ui_primitives.py",
-    "line": 163,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/output_format_conformance.py",
-    "line": 95,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/output_format_conformance.py",
-    "line": 119,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/owners_present.py",
-    "line": 30,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/owners_present.py",
-    "line": 70,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/performance_budgets.py",
-    "line": 134,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/performance_budgets.py",
-    "line": 179,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_a.py",
-    "line": 237,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_a.py",
-    "line": 260,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_b.py",
-    "line": 210,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_b.py",
-    "line": 232,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/storage_isolation.py",
-    "line": 71,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/storage_isolation.py",
-    "line": 92,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/todo_in_prod.py",
-    "line": 82,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/todo_in_prod.py",
-    "line": 103,
     "rule": "Q15.spine-docstring-required"
   },
   {
@@ -3828,5 +3773,40 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
     "line": 141,
     "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/generate_typecheck_baseline.py",
+    "line": 65,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/generate_typecheck_baseline.py",
+    "line": 96,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
+    "line": 46,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
+    "line": 68,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
+    "line": 110,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
+    "line": 157,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/validate_dependencies_yaml.py",
+    "line": 35,
+    "rule": "Q15.spine-docstring-required"
   }
 ]

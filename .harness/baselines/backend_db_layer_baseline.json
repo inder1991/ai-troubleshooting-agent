@@ -281,11 +281,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
-    "line": 100,
-    "rule": "Q8.text-call-outside-analytics"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
     "line": 92,
     "rule": "Q8.raw-sql-unjustified"
   },
@@ -293,6 +288,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
     "line": 100,
     "rule": "Q8.raw-sql-unjustified"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
+    "line": 100,
+    "rule": "Q8.text-call-outside-analytics"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",

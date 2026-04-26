@@ -1851,6 +1851,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/CampaignRepoNode.tsx",
+    "line": 79,
+    "rule": "Q4.no-bare-html-primitive"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/CampaignRepoNode.tsx",
     "line": 132,
     "rule": "Q4.no-bare-html-primitive"
   },
@@ -1862,11 +1867,6 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/CampaignRepoNode.tsx",
     "line": 144,
-    "rule": "Q4.no-bare-html-primitive"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/CampaignRepoNode.tsx",
-    "line": 79,
     "rule": "Q4.no-bare-html-primitive"
   },
   {

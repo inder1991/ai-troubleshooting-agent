@@ -1,435 +1,5 @@
 [
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/agent_registry.py",
-    "line": 58,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/agent_registry.py",
-    "line": 71,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/agent_registry.py",
-    "line": 84,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/agent_registry.py",
-    "line": 95,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 244,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 273,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 562,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 602,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 626,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 268,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 557,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 596,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
-    "line": 620,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_session_endpoints.py",
-    "line": 129,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
-    "line": 1332,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
-    "line": 65,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
-    "line": 81,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
-    "line": 97,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
-    "line": 114,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
-    "line": 87,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 970,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 971,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 972,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 973,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 103,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 864,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 875,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 899,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 137,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 709,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 575,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 672,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
-    "line": 707,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/middleware_observability.py",
-    "line": 143,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
-    "line": 828,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
-    "line": 1045,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
-    "line": 1092,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
-    "line": 1254,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
-    "line": 1283,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
-    "line": 1184,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
-    "line": 983,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 31,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 83,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 124,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 142,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 161,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 63,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 72,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 73,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 74,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 40,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 84,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 162,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
-    "line": 159,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
-    "line": 115,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
-    "line": 168,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
-    "line": 281,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
-    "line": 402,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
-    "line": 264,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
-    "line": 310,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
-    "line": 350,
-    "rule": "Q16.f-string-in-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
-    "line": 414,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 54,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 66,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 102,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 113,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 1280,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 1798,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 2294,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 3047,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 1183,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 1269,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 2970,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 2497,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
-    "line": 350,
-    "rule": "Q16.secret-shaped-log-literal"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/session_manager.py",
-    "line": 29,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/session_manager.py",
-    "line": 62,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/session_manager.py",
-    "line": 47,
-    "rule": "Q16.no-print-in-spine"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
-    "line": 148,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
-    "line": 587,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
-    "line": 320,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
-    "line": 376,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
-    "line": 243,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/websocket.py",
-    "line": 101,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/websocket.py",
-    "line": 112,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/websocket.py",
-    "line": 91,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/_decorators.py",
     "line": 77,
     "rule": "Q16.bare-except-no-log"
@@ -437,6 +7,16 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
     "line": 63,
+    "rule": "Q16.f-string-in-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
+    "line": 65,
+    "rule": "Q16.f-string-in-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
+    "line": 67,
     "rule": "Q16.f-string-in-log"
   },
   {
@@ -451,21 +31,6 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
-    "line": 127,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
-    "line": 65,
-    "rule": "Q16.f-string-in-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
-    "line": 67,
-    "rule": "Q16.f-string-in-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
     "line": 104,
     "rule": "Q16.f-string-in-log"
   },
@@ -473,6 +38,11 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
     "line": 106,
     "rule": "Q16.f-string-in-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
+    "line": 127,
+    "rule": "Q16.bare-except-no-log"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/assessors.py",
@@ -536,23 +106,13 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
-    "line": 936,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
     "line": 856,
     "rule": "Q16.bare-except-no-log"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/stagers.py",
-    "line": 121,
-    "rule": "Q16.f-string-in-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/stagers.py",
-    "line": 130,
-    "rule": "Q16.f-string-in-log"
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "line": 936,
+    "rule": "Q16.bare-except-no-log"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/stagers.py",
@@ -566,12 +126,22 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/stagers.py",
-    "line": 178,
+    "line": 82,
     "rule": "Q16.f-string-in-log"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/stagers.py",
-    "line": 82,
+    "line": 121,
+    "rule": "Q16.f-string-in-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/stagers.py",
+    "line": 130,
+    "rule": "Q16.f-string-in-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/stagers.py",
+    "line": 178,
     "rule": "Q16.f-string-in-log"
   },
   {
@@ -641,7 +211,17 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
+    "line": 112,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
     "line": 714,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
+    "line": 1202,
     "rule": "Q16.bare-except-no-log"
   },
   {
@@ -651,22 +231,27 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
-    "line": 112,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
     "line": 1390,
     "rule": "Q16.bare-except-no-log"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
-    "line": 1202,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
+    "line": 330,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
+    "line": 361,
     "rule": "Q16.bare-except-no-log"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
     "line": 413,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
+    "line": 445,
     "rule": "Q16.bare-except-no-log"
   },
   {
@@ -696,32 +281,17 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
-    "line": 1777,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
-    "line": 361,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
     "line": 1729,
     "rule": "Q16.bare-except-no-log"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
+    "line": 1777,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
     "line": 1811,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
-    "line": 330,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
-    "line": 445,
     "rule": "Q16.bare-except-no-log"
   },
   {
@@ -786,6 +356,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
+    "line": 169,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
     "line": 388,
     "rule": "Q16.bare-except-no-log"
   },
@@ -801,6 +376,11 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
+    "line": 539,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
     "line": 607,
     "rule": "Q16.bare-except-no-log"
   },
@@ -812,16 +392,6 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
     "line": 706,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
-    "line": 169,
-    "rule": "Q16.bare-except-no-log"
-  },
-  {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
-    "line": 539,
     "rule": "Q16.bare-except-no-log"
   },
   {
@@ -916,6 +486,16 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 892,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1021,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
     "line": 1026,
     "rule": "Q16.bare-except-no-log"
   },
@@ -941,12 +521,17 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 2314,
+    "line": 1797,
     "rule": "Q16.bare-except-no-log"
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 2445,
+    "line": 1824,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1842,
     "rule": "Q16.bare-except-no-log"
   },
   {
@@ -957,6 +542,11 @@
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
     "line": 1950,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1962,
     "rule": "Q16.bare-except-no-log"
   },
   {
@@ -986,6 +576,16 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2299,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2314,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
     "line": 2323,
     "rule": "Q16.bare-except-no-log"
   },
@@ -1001,37 +601,437 @@
   },
   {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 892,
+    "line": 2445,
     "rule": "Q16.bare-except-no-log"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 1021,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/agent_registry.py",
+    "line": 58,
     "rule": "Q16.bare-except-no-log"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 1962,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/agent_registry.py",
+    "line": 71,
     "rule": "Q16.bare-except-no-log"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 2299,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/agent_registry.py",
+    "line": 84,
     "rule": "Q16.bare-except-no-log"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 1797,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/agent_registry.py",
+    "line": 95,
     "rule": "Q16.bare-except-no-log"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 1842,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 244,
     "rule": "Q16.bare-except-no-log"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
-    "line": 1824,
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 268,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 273,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 557,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 562,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 596,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 602,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 620,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 626,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_session_endpoints.py",
+    "line": 129,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "line": 1332,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 65,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 81,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 97,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 114,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
+    "line": 87,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 103,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 137,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 575,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 672,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 707,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 709,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 864,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 875,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 899,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 970,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 971,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 972,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 973,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/middleware_observability.py",
+    "line": 143,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 828,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 983,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1045,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1092,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1184,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1254,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1283,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 31,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 40,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 63,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 72,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 73,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 74,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 83,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 84,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 124,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 142,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 159,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 161,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 162,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 115,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 168,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 264,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 281,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 310,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 350,
+    "rule": "Q16.f-string-in-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 402,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 414,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 54,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 66,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 102,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 113,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 350,
+    "rule": "Q16.secret-shaped-log-literal"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1183,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1269,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1280,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1798,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2294,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2497,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2970,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3047,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/session_manager.py",
+    "line": 29,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/session_manager.py",
+    "line": 47,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/session_manager.py",
+    "line": 62,
+    "rule": "Q16.no-print-in-spine"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 148,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 243,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 320,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 376,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 587,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/websocket.py",
+    "line": 91,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/websocket.py",
+    "line": 101,
+    "rule": "Q16.bare-except-no-log"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/websocket.py",
+    "line": 112,
     "rule": "Q16.bare-except-no-log"
   }
 ]
