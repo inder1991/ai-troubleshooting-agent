@@ -58,6 +58,7 @@ diff-cover>=8.0.0
 hypothesis>=6.92.0
 respx>=0.20.0
 slowapi>=0.1.9
+tenacity>=8.2.0
 
 # Observability (Q16)
 structlog>=24.0.0
