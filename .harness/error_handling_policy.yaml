@@ -1,0 +1,13 @@
+spine_paths:
+  - backend/src/api/**
+  - backend/src/services/**
+  - backend/src/storage/**
+  - backend/src/agents/**
+
+http_exception_names:
+  - HTTPException
+  - StarletteHTTPException
+
+generic_exception_names:
+  - Exception
+  - BaseException
