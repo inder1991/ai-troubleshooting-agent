@@ -32,3 +32,9 @@ ignore = [
 "tests/**" = ["D"]                  # tests don't need docstrings
 "backend/tests/**" = ["D"]
 "backend/src/**/_*.py" = ["D"]      # private helpers exempt
+
+# Q18 — import discipline: alphabetized, sectioned, src is first-party.
+[tool.ruff.lint.isort]
+force-single-line = false
+force-sort-within-sections = true
+known-first-party = ["src"]

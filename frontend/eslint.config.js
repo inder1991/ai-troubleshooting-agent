@@ -9,6 +9,7 @@
 // eslint-plugin-react-refresh) are installed.
 
 import jsxA11y from "eslint-plugin-jsx-a11y";
+import importPlugin from "eslint-plugin-import";
 
 export default [
   { ignores: ["dist", "node_modules", "e2e", "coverage"] },
@@ -16,10 +17,26 @@ export default [
     files: ["src/**/*.{ts,tsx,js,jsx}"],
     plugins: {
       "jsx-a11y": jsxA11y,
+      import: importPlugin,
     },
     rules: {
       // Q14: jsx-a11y recommended rules at error level.
       ...jsxA11y.configs.recommended.rules,
+      // Q18: import discipline.
+      "import/order": ["error", {
+        groups: ["builtin", "external", "parent", "sibling", "index"],
+        "newlines-between": "always",
+        alphabetize: { order: "asc", caseInsensitive: true },
+      }],
+      "import/no-default-export": "error",
+      "import/no-relative-parent-imports": "error",
+    },
+  },
+  {
+    // pages/ + config files exception for default exports.
+    files: ["src/pages/**/*.tsx", "*.config.{ts,js,cjs}", "playwright.config.ts"],
+    rules: {
+      "import/no-default-export": "off",
     },
   },
 ];
