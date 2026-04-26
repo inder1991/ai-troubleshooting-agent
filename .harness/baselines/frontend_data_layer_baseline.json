@@ -1,0 +1,107 @@
+[
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ActionCenter/forms/ClusterDiagnosticsFields.tsx",
+    "line": 111,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/AgentCostBreakdown.tsx",
+    "line": 39,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/ClusterDossierExport.tsx",
+    "line": 17,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+    "line": 58,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+    "line": 79,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+    "line": 89,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/ClusterDiagnostic/LLMCostBadge.tsx",
+    "line": 44,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/DatabaseWarRoom.tsx",
+    "line": 146,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Investigation/__tests__/InvestigationView.polling.test.ts",
+    "line": 53,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Network/NDMOverviewTab.tsx",
+    "line": 86,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Observatory/topology/LiveTopologyViewV2.tsx",
+    "line": 71,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Platform/AgentCatalog/AgentDetailPanel.tsx",
+    "line": 29,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Platform/AgentCatalog/useAgentCatalog.ts",
+    "line": 25,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/AdapterConfigDialog.tsx",
+    "line": 39,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/AdapterConfigDialog.tsx",
+    "line": 68,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/TopologyEditor/DevicePropertyPanel.tsx",
+    "line": 920,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useAssistantChat.ts",
+    "line": 42,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useAssistantChat.ts",
+    "line": 90,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useNetworkChat.ts",
+    "line": 36,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useNetworkChat.ts",
+    "line": 72,
+    "rule": "Q3.no-raw-fetch-in-ui"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/stores/pinStore.ts",
+    "line": 1,
+    "rule": "Q2.zustand-needs-justification"
+  }
+]
