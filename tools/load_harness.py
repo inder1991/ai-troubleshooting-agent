@@ -26,12 +26,14 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
+
+from tools._common import parse_front_matter as _strip_front_matter  # noqa: E402
 
 
 def _read_file_safe(path: Path) -> str:
@@ -39,38 +41,6 @@ def _read_file_safe(path: Path) -> str:
         return path.read_text()
     except OSError:
         return ""
-
-
-def _strip_front_matter(text: str) -> tuple[dict[str, Any], str]:
-    """Return (parsed_front_matter, body). Empty dict on absence/malformed."""
-    match = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.DOTALL)
-    if not match:
-        return {}, text
-    fm_text, body = match.group(1), match.group(2)
-    # Light, dependency-free YAML parsing for the limited subset we use:
-    # `key: value` lines, list values via `applies_to:` followed by `- ...`.
-    fm: dict[str, Any] = {}
-    current_list_key: str | None = None
-    for raw in fm_text.splitlines():
-        line = raw.rstrip()
-        if not line or line.startswith("#"):
-            continue
-        list_item = re.match(r"^\s+-\s+(.+)$", line)
-        if list_item and current_list_key is not None:
-            fm.setdefault(current_list_key, []).append(list_item.group(1).strip())
-            continue
-        kv = re.match(r"^([A-Za-z_][\w-]*):\s*(.*)$", line)
-        if not kv:
-            current_list_key = None
-            continue
-        key, value = kv.group(1), kv.group(2).strip()
-        if value == "":
-            current_list_key = key
-            fm[key] = []
-        else:
-            current_list_key = None
-            fm[key] = value.strip('"').strip("'")
-    return fm, body
 
 
 def load_root() -> str:
