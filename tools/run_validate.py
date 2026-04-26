@@ -44,10 +44,19 @@ def run_lint() -> int:
         if rc != 0:
             return rc
     if (REPO_ROOT / "frontend").is_dir() and _have("npx"):
-        # ESLint config may not be wired yet in Sprint H.0a; tolerate missing config.
+        # ESLint config exists from H.0b.7 (jsx-a11y stub) but the TypeScript
+        # parser stack (typescript-eslint) is wired in H.0b.11. Until then,
+        # eslint can't parse our .ts/.tsx files without 500+ parse errors.
+        # We invoke eslint only when typescript-eslint is also installed —
+        # that's the canary for "full parser stack present".
         eslint_config = REPO_ROOT / "frontend/eslint.config.js"
-        if eslint_config.exists() or (REPO_ROOT / "frontend/.eslintrc.cjs").exists():
-            rc = _run("eslint", ["npx", "--prefix", "frontend", "eslint", "src/"])
+        ts_eslint_pkg = REPO_ROOT / "frontend/node_modules/typescript-eslint/package.json"
+        if eslint_config.exists() and ts_eslint_pkg.exists():
+            rc = _run(
+                "eslint",
+                ["npx", "eslint", "src/"],
+                cwd=REPO_ROOT / "frontend",
+            )
             if rc != 0:
                 return rc
     return 0

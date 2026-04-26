@@ -68,12 +68,14 @@
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/ui": "^4.1.4",
     "autoprefixer": "^10.4.16",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "jsdom": "^29.0.2",
     "msw": "^2.13.3",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "vitest-axe": "^0.1.0"
   }
 }
