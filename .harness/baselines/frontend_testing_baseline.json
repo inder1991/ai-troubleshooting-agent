@@ -1,0 +1,82 @@
+[
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useInvestigationTools.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/usePhaseTracker.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useNetworkChat.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useAssistantChat.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useDebounce.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useKeyboardShortcuts.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useWebSocket.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useStreamingMessage.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useAssistantChat.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useDebounce.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useInvestigationTools.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useKeyboardShortcuts.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useNetworkChat.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/usePhaseTracker.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useStreamingMessage.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useWebSocket.ts",
+    "line": 1,
+    "rule": "Q5.hook-needs-test"
+  }
+]
