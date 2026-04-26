@@ -6,15 +6,47 @@ Per H-16 / H-23, every check emits structured one-line records:
 
 `emit()` is the single point where that format is constructed, so
 changing the format later is a one-file change.
+
+`load_baseline(rule_file_stem)` returns the set of (file, line, rule)
+tuples the check should suppress. Per H.1d.6 — first-class baselining of
+H.1a/b/c live-repo violations until the underlying code can be migrated.
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from typing import Iterable, Literal
 
 Severity = Literal["ERROR", "WARN", "INFO"]
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_baseline(rule_file_stem: str) -> set[tuple[str, int, str]]:
+    """Load `.harness/baselines/<rule_file_stem>_baseline.json` and return a
+    set of (file, line, rule) tuples for filtering.
+
+    Each baseline entry must have at least {file, line, rule} keys; extras
+    ignored. Empty set on missing/unparseable file (the surrounding check
+    pipeline still surfaces real findings; `harness_policy_schema` in
+    H.1d.4 will yell loudly about a malformed baseline).
+    """
+    baseline_path = REPO_ROOT / ".harness/baselines" / f"{rule_file_stem}_baseline.json"
+    if not baseline_path.exists():
+        return set()
+    try:
+        data = json.loads(baseline_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    if not isinstance(data, list):
+        return set()
+    out: set[tuple[str, int, str]] = set()
+    for entry in data:
+        if isinstance(entry, dict) and {"file", "line", "rule"} <= set(entry.keys()):
+            out.add((str(entry["file"]), int(entry["line"]), str(entry["rule"])))
+    return out
 
 
 def emit(
