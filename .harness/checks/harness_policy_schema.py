@@ -116,7 +116,55 @@ def scan(
             total_errors += 1
             continue
         total_errors += _validate_one(yaml_path, schema_path)
+
+    # Also validate every .harness/generated/*.json against
+    # .harness/schemas/generated/<name>.schema.json (warn-only when missing).
+    generated_dir = REPO_ROOT / ".harness" / "generated"
+    generated_schemas_dir = schemas_dir / "generated"
+    if generated_dir.exists():
+        for json_path in sorted(generated_dir.glob("*.json")):
+            schema_path = generated_schemas_dir / f"{json_path.stem}.schema.json"
+            if not schema_path.exists():
+                emit("WARN", json_path, "H21.policy-schema-missing",
+                     f"{json_path.name} has no matching generated schema",
+                     f"add .harness/schemas/generated/{json_path.stem}.schema.json",
+                     line=0)
+                continue
+            total_errors += _validate_json_one(json_path, schema_path)
     return 1 if total_errors else 0
+
+
+def _validate_json_one(json_path: Path, schema_path: Path) -> int:
+    """Validate generated JSON file against its schema. Returns count of ERRORs."""
+    try:
+        import jsonschema
+    except ImportError:
+        return 0
+    try:
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        emit("WARN", json_path, "harness.unparseable",
+             f"could not parse {json_path.name}: {exc}",
+             "regenerate via `make harness`", line=0)
+        return 0
+    try:
+        with schema_path.open("r", encoding="utf-8") as fh:
+            schema = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        emit("WARN", schema_path, "harness.unparseable",
+             f"could not parse {schema_path.name}: {exc}",
+             "fix schema JSON", line=0)
+        return 0
+    try:
+        jsonschema.validate(instance=data, schema=schema)
+    except jsonschema.ValidationError as exc:
+        path_str = ".".join(str(p) for p in exc.absolute_path) or "<root>"
+        emit("ERROR", json_path, "H21.policy-schema-violation",
+             f"{json_path.name} fails schema at {path_str}: {exc.message}",
+             "fix the generator or update the schema (with ADR)",
+             line=0)
+        return 1
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
