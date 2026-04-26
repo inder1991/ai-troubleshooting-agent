@@ -134,3 +134,7 @@ harness-typecheck-baseline:  ## Q19 — regenerate mypy + tsc baselines.
 .PHONY: harness-baseline-refresh
 harness-baseline-refresh:  ## Regenerate every .harness/baselines/<rule>_baseline.json deterministically.
 	@python3 tools/refresh_baselines.py
+
+.PHONY: harness-sync
+harness-sync:  ## H-26 — pull pinned ai-harness into this repo per .harness-version.
+	@python3 tools/sync_harness.py

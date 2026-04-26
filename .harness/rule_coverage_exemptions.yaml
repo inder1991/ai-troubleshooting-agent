@@ -44,4 +44,4 @@ exemptions:
   - rule: H-25
     reason: docstring discipline self-enforced via review and convention
   - rule: H-26
-    reason: every Q-decision yields rule id(s); convention satisfied by check naming
+    reason: harness substrate consumed via pinned tag; enforced by tools/sync_harness.py + .harness-version (H.3.5)
