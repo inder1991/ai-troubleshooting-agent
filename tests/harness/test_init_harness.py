@@ -49,6 +49,33 @@ def test_bootstrap_is_idempotent(tmp_path: Path) -> None:
     assert "{{OWNER}}" not in (target / "CLAUDE.md").read_text(encoding="utf-8")
 
 
+def test_bootstrap_from_git_local_url(tmp_path: Path) -> None:
+    """H.3.4 — --from-git mode against a file:// URL.
+
+    Uses the live DebugDuck repo as a file:// origin so the test is
+    network-free. Confirms the clone+overlay path produces the same
+    artifacts as the local-source path.
+    """
+    target = tmp_path / "from_git_target"
+    repo_url = f"file://{REPO_ROOT}"
+    result = subprocess.run(
+        [
+            sys.executable, str(SCRIPT),
+            "--target", str(target),
+            "--owner", "@from-git-test",
+            "--tech-stack", "polyglot",
+            "--from-git", "main",
+            "--git-url", repo_url,
+        ],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (target / ".harness").exists()
+    assert (target / "CLAUDE.md").exists()
+    claude_text = (target / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "@from-git-test" in claude_text
+
+
 def test_bootstrap_skips_baseline_and_generated_jsons(tmp_path: Path) -> None:
     """Bootstrap should not copy source-specific baseline or generated truth files."""
     target = tmp_path / "new_repo"
