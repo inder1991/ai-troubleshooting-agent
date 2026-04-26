@@ -1,0 +1,3611 @@
+{
+  "generated_at": "2026-04-26T18:57:30.974111+00:00",
+  "tool_version": "Version 5.9.3",
+  "violations": [
+    {
+      "code": 2532,
+      "column": 87,
+      "file": "src/components/ActionCenter/forms/ClusterDiagnosticsFields.tsx",
+      "line": 48,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 25,
+      "file": "src/components/ActionCenter/forms/ClusterDiagnosticsFields.tsx",
+      "line": 67,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 91,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 52,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 26,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 53,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 18048,
+      "column": 34,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 67,
+      "message": "'data.affected_functions' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 10,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 71,
+      "message": "'data.affected_functions' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 73,
+      "message": "'data.affected_functions' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 78,
+      "message": "'data.affected_functions' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 26,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 80,
+      "message": "'data.affected_functions' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 38,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 96,
+      "message": "'data.side_effects' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 10,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 100,
+      "message": "'data.side_effects' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 102,
+      "message": "'data.side_effects' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 69,
+      "file": "src/components/Agent3/ImpactAssessmentCard.tsx",
+      "line": 139,
+      "message": "'data.affected_functions' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 29,
+      "file": "src/components/AgentMatrix/AgentCard.tsx",
+      "line": 142,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 43,
+      "file": "src/components/AgentMatrix/AgentDetailView.tsx",
+      "line": 50,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 24,
+      "file": "src/components/AgentMatrix/AgentDetailView.tsx",
+      "line": 51,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 63,
+      "file": "src/components/AgentMatrix/AgentDetailView.tsx",
+      "line": 66,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 22,
+      "file": "src/components/AgentMatrix/AgentDetailView.tsx",
+      "line": 67,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 35,
+      "file": "src/components/AgentMatrix/RecentCasesPanel.tsx",
+      "line": 76,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 65,
+      "file": "src/components/AgentMatrix/RecentCasesPanel.tsx",
+      "line": 76,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/banner/__tests__/BannerRow.test.tsx",
+      "line": 39,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 24,
+      "file": "src/components/banner/phaseNarrative.ts",
+      "line": 128,
+      "message": "'a' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 53,
+      "file": "src/components/banner/phaseNarrative.ts",
+      "line": 128,
+      "message": "'a' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 22,
+      "file": "src/components/banner/phaseNarrative.ts",
+      "line": 135,
+      "message": "'first' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 55,
+      "file": "src/components/banner/phaseNarrative.ts",
+      "line": 135,
+      "message": "'first' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 5,
+      "file": "src/components/banner/phaseNarrative.ts",
+      "line": 136,
+      "message": "'second' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 25,
+      "file": "src/components/banner/phaseNarrative.ts",
+      "line": 137,
+      "message": "'second' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 5,
+      "file": "src/components/banner/signalScheduler.ts",
+      "line": 162,
+      "message": "Type 'Signal | undefined' is not assignable to type 'Signal | null'."
+    },
+    {
+      "code": 2322,
+      "column": 15,
+      "file": "src/components/center/__tests__/BlastRadiusList.test.tsx",
+      "line": 120,
+      "message": "Type 'Date' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 15,
+      "file": "src/components/center/__tests__/BlastRadiusList.test.tsx",
+      "line": 141,
+      "message": "Type 'Date' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 15,
+      "file": "src/components/center/__tests__/BlastRadiusList.test.tsx",
+      "line": 162,
+      "message": "Type 'Date' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 54,
+      "file": "src/components/center/__tests__/BlastRadiusList.test.tsx",
+      "line": 214,
+      "message": "Type 'Date' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 54,
+      "file": "src/components/center/__tests__/BlastRadiusList.test.tsx",
+      "line": 231,
+      "message": "Type 'Date' is not assignable to type 'string'."
+    },
+    {
+      "code": 2537,
+      "column": 140,
+      "file": "src/components/center/__tests__/FixReadyBar.test.tsx",
+      "line": 98,
+      "message": "Type 'SuggestedFixArea[] | undefined' has no matching index signature for type 'number'."
+    },
+    {
+      "code": 2532,
+      "column": 20,
+      "file": "src/components/center/BlastRadiusList.tsx",
+      "line": 70,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/center/FixReadyBar.tsx",
+      "line": 72,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 52,
+      "file": "src/components/center/FixReadyBar.tsx",
+      "line": 72,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/center/FixReadyBar.tsx",
+      "line": 75,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 63,
+      "file": "src/components/center/FixReadyBar.tsx",
+      "line": 75,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 26,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 33,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 24,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 34,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 31,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 40,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 32,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 41,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 34,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 47,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 24,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 48,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 31,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 54,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 35,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 55,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 26,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 56,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 23,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 68,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 22,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 69,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2322,
+      "column": 29,
+      "file": "src/components/Chat/ChatDrawer.tsx",
+      "line": 70,
+      "message": "Type 'LucideIcon' is not assignable to type 'ComponentType<{ size: string | number; }>'."
+    },
+    {
+      "code": 2532,
+      "column": 27,
+      "file": "src/components/Chat/ChatInputArea.tsx",
+      "line": 83,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 61,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 43,
+      "message": "Type '{ label: string; color: string; icon: string; } | undefined' is not assignable to type '{ label: string; color: string; icon: string; }'."
+    },
+    {
+      "code": 2322,
+      "column": 69,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 44,
+      "message": "Type '{ label: string; color: string; icon: string; } | undefined' is not assignable to type '{ label: string; color: string; icon: string; }'."
+    },
+    {
+      "code": 2322,
+      "column": 93,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 45,
+      "message": "Type '{ label: string; color: string; icon: string; } | undefined' is not assignable to type '{ label: string; color: string; icon: string; }'."
+    },
+    {
+      "code": 2322,
+      "column": 95,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 46,
+      "message": "Type '{ label: string; color: string; icon: string; } | undefined' is not assignable to type '{ label: string; color: string; icon: string; }'."
+    },
+    {
+      "code": 2322,
+      "column": 3,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 48,
+      "message": "Type '{ label: string; color: string; icon: string; } | undefined' is not assignable to type '{ label: string; color: string; icon: string; }'."
+    },
+    {
+      "code": 18048,
+      "column": 38,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 118,
+      "message": "'colors' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 66,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 118,
+      "message": "'colors' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 53,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 122,
+      "message": "'colors' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 54,
+      "file": "src/components/Chat/MarkdownBubble.tsx",
+      "line": 127,
+      "message": "'colors' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 79,
+      "file": "src/components/Chat/PinnedActionCard.tsx",
+      "line": 64,
+      "message": "'config' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Chat/PinnedActionCard.tsx",
+      "line": 68,
+      "message": "'config' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Chat/PinnedActionCard.tsx",
+      "line": 71,
+      "message": "'config' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 9,
+      "file": "src/components/Chat/PinnedActionCard.tsx",
+      "line": 85,
+      "message": "Type 'unknown' is not assignable to type 'ReactNode'."
+    },
+    {
+      "code": 2322,
+      "column": 12,
+      "file": "src/components/CICD/DeliveryDrawer.tsx",
+      "line": 24,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 44,
+      "file": "src/components/CICD/DeliveryDrawer.tsx",
+      "line": 24,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2532,
+      "column": 54,
+      "file": "src/components/Cloud/CloudResourcesView.tsx",
+      "line": 300,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 9,
+      "file": "src/components/Cloud/CloudResourcesView.tsx",
+      "line": 420,
+      "message": "Type 'CloudSyncJob | null | undefined' is not assignable to type 'CloudSyncJob | null'."
+    },
+    {
+      "code": 2345,
+      "column": 22,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 197,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 19,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 198,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 33,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 207,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 11,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 210,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 18048,
+      "column": 31,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 270,
+      "message": "'prev' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 9,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 272,
+      "message": "'worst' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 25,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 273,
+      "message": "'worst' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 22,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 295,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 19,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 296,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 33,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 304,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 11,
+      "file": "src/components/ClusterDiagnostic/ClusterWarRoom.tsx",
+      "line": 307,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 80,
+      "file": "src/components/ClusterDiagnostic/FleetHeatmap.tsx",
+      "line": 46,
+      "message": "Argument of type 'number | undefined' is not assignable to parameter of type 'number'."
+    },
+    {
+      "code": 18048,
+      "column": 21,
+      "file": "src/components/ClusterDiagnostic/HypothesisCard.tsx",
+      "line": 49,
+      "message": "'topHypothesis' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 64,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 43,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 70,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 45,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 73,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 83,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 43,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 89,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 45,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 92,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 98,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 26,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 100,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 107,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 110,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 115,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 41,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 115,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 118,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 141,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 59,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 147,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 59,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 148,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 16,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 152,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 154,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 64,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 154,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 18,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 157,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 16,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 164,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 171,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 58,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 174,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 17,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 179,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 17,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 180,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 17,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 181,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 189,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 195,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 63,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 196,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 202,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 58,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 202,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 93,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 202,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 8,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 209,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 32,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 209,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 43,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 212,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 44,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 215,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 22,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 225,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 33,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 254,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 55,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 254,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 256,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 45,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 258,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 264,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 45,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 266,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 34,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 276,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 56,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 276,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 278,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 60,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 281,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 284,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 64,
+      "file": "src/components/ClusterDiagnostic/RemediationCard.tsx",
+      "line": 287,
+      "message": "'primaryStep' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 15,
+      "file": "src/components/Dashboard/DashboardTab.tsx",
+      "line": 106,
+      "message": "Type 'CriticVerdict[] | undefined' is not assignable to type 'CriticVerdict[]'."
+    },
+    {
+      "code": 2322,
+      "column": 30,
+      "file": "src/components/Dashboard/DashboardTab.tsx",
+      "line": 113,
+      "message": "Type 'ErrorPattern[] | undefined' is not assignable to type 'ErrorPattern[]'."
+    },
+    {
+      "code": 2322,
+      "column": 29,
+      "file": "src/components/Dashboard/DashboardTab.tsx",
+      "line": 117,
+      "message": "Type 'MetricAnomaly[] | undefined' is not assignable to type 'MetricAnomaly[]'."
+    },
+    {
+      "code": 2322,
+      "column": 26,
+      "file": "src/components/Dashboard/DashboardTab.tsx",
+      "line": 121,
+      "message": "Type 'PodHealthStatus[] | undefined' is not assignable to type 'PodHealthStatus[]'."
+    },
+    {
+      "code": 2322,
+      "column": 55,
+      "file": "src/components/Dashboard/DashboardTab.tsx",
+      "line": 121,
+      "message": "Type 'K8sEvent[] | undefined' is not assignable to type 'K8sEvent[]'."
+    },
+    {
+      "code": 2322,
+      "column": 22,
+      "file": "src/components/Dashboard/DashboardTab.tsx",
+      "line": 125,
+      "message": "Type 'SpanInfo[] | undefined' is not assignable to type 'SpanInfo[]'."
+    },
+    {
+      "code": 2322,
+      "column": 27,
+      "file": "src/components/Dashboard/DashboardTab.tsx",
+      "line": 129,
+      "message": "Type 'CodeImpact[] | undefined' is not assignable to type 'CodeImpact[]'."
+    },
+    {
+      "code": 18048,
+      "column": 48,
+      "file": "src/components/Dashboard/ImpactCard.tsx",
+      "line": 47,
+      "message": "'config' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 61,
+      "file": "src/components/Dashboard/ImpactCard.tsx",
+      "line": 47,
+      "message": "'config' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 95,
+      "file": "src/components/Dashboard/ImpactCard.tsx",
+      "line": 47,
+      "message": "'config' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 52,
+      "file": "src/components/Dashboard/ImpactCard.tsx",
+      "line": 49,
+      "message": "'config' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 21,
+      "file": "src/components/Database/DBConnections.tsx",
+      "line": 157,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 22,
+      "file": "src/components/Database/DBConnections.tsx",
+      "line": 161,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 31,
+      "file": "src/components/Database/DBConnections.tsx",
+      "line": 162,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 30,
+      "file": "src/components/Database/DBDiagnostics.tsx",
+      "line": 65,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 48,
+      "file": "src/components/Database/DBMonitoring.tsx",
+      "line": 81,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 86,
+      "file": "src/components/Database/DBMonitoring.tsx",
+      "line": 81,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 71,
+      "file": "src/components/Database/DBMonitoring.tsx",
+      "line": 138,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 85,
+      "file": "src/components/Database/DBMonitoring.tsx",
+      "line": 155,
+      "message": "'timeRange' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 105,
+      "file": "src/components/Database/DBMonitoring.tsx",
+      "line": 155,
+      "message": "'timeRange' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 19,
+      "file": "src/components/Database/DBMonitoring.tsx",
+      "line": 241,
+      "message": "'timeRange' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 51,
+      "file": "src/components/Database/DBOperations.tsx",
+      "line": 97,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 71,
+      "file": "src/components/Database/DBSchema.tsx",
+      "line": 77,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/Foreman/ForemanHUD.tsx",
+      "line": 47,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/Foreman/ForemanHUD.tsx",
+      "line": 95,
+      "message": "'last' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 31,
+      "file": "src/components/Foreman/ForemanHUD.tsx",
+      "line": 95,
+      "message": "'last' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 51,
+      "file": "src/components/Foreman/ForemanHUD.tsx",
+      "line": 95,
+      "message": "'last' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 32,
+      "file": "src/components/Foreman/NeuralTether.tsx",
+      "line": 19,
+      "message": "'x' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 83,
+      "file": "src/components/Foreman/NeuralTether.tsx",
+      "line": 20,
+      "message": "'y' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 73,
+      "file": "src/components/Home/EnvironmentHealth.tsx",
+      "line": 92,
+      "message": "'si' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 18,
+      "file": "src/components/Home/EnvironmentHealth.tsx",
+      "line": 93,
+      "message": "'si' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 48,
+      "file": "src/components/Home/EnvironmentHealth.tsx",
+      "line": 98,
+      "message": "'si' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 16,
+      "file": "src/components/Home/EventTicker.tsx",
+      "line": 185,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 78,
+      "file": "src/components/Home/EventTicker.tsx",
+      "line": 192,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Home/EventTicker.tsx",
+      "line": 193,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 75,
+      "file": "src/components/Home/EventTicker.tsx",
+      "line": 195,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Home/EventTicker.tsx",
+      "line": 196,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 91,
+      "file": "src/components/Home/RecentAlerts.tsx",
+      "line": 95,
+      "message": "'sev' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 20,
+      "file": "src/components/Home/RecentAlerts.tsx",
+      "line": 96,
+      "message": "'sev' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 22,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 100,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2538,
+      "column": 22,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 134,
+      "message": "Type 'undefined' cannot be used as an index type."
+    },
+    {
+      "code": 2538,
+      "column": 22,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 136,
+      "message": "Type 'undefined' cannot be used as an index type."
+    },
+    {
+      "code": 2488,
+      "column": 17,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 164,
+      "message": "Type '[string, string] | undefined' must have a '[Symbol.iterator]()' method that returns an iterator."
+    },
+    {
+      "code": 18048,
+      "column": 17,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 188,
+      "message": "'currentPhase' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 30,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 278,
+      "message": "'fromDims' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 58,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 278,
+      "message": "'fromDims' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 28,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 279,
+      "message": "'toDims' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 52,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 279,
+      "message": "'toDims' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 32,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 418,
+      "message": "'fromDims' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 60,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 418,
+      "message": "'fromDims' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 30,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 419,
+      "message": "'toDims' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 54,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 419,
+      "message": "'toDims' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 22,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 500,
+      "message": "'currentPhase' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 29,
+      "file": "src/components/HowItWorks/WorkflowAnimation.tsx",
+      "line": 501,
+      "message": "'currentPhase' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Investigation/__tests__/HypothesisScoreboard.test.tsx",
+      "line": 83,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 9,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 40,
+      "message": "'ev' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 35,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 42,
+      "message": "Type 'TaskEvent | undefined' is not assignable to type 'TaskEvent'."
+    },
+    {
+      "code": 2532,
+      "column": 35,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 44,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 75,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 44,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 100,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 44,
+      "message": "'ev' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 20,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 45,
+      "message": "Argument of type 'TaskEvent | undefined' is not assignable to parameter of type 'TaskEvent'."
+    },
+    {
+      "code": 18048,
+      "column": 18,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 51,
+      "message": "'ev' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 24,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 53,
+      "message": "'ev' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 40,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 58,
+      "message": "Type 'TaskEvent | undefined' is not assignable to type 'TaskEvent'."
+    },
+    {
+      "code": 18048,
+      "column": 64,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 58,
+      "message": "'ev' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 78,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 199,
+      "message": "Type 'ReasoningChainStep[] | undefined' is not assignable to type 'ReasoningChainStep[]'."
+    },
+    {
+      "code": 2322,
+      "column": 90,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 200,
+      "message": "Type 'InferredDependency[] | undefined' is not assignable to type 'InferredDependency[]'."
+    },
+    {
+      "code": 18048,
+      "column": 58,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 289,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 74,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 289,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 59,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 303,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 306,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 77,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 308,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 53,
+      "file": "src/components/Investigation/AISupervisor.tsx",
+      "line": 327,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 69,
+      "file": "src/components/Investigation/CampaignRepoNode.tsx",
+      "line": 71,
+      "message": "'status' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Investigation/CampaignRepoNode.tsx",
+      "line": 72,
+      "message": "'status' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 15,
+      "file": "src/components/Investigation/cards/AnomalySparkline.tsx",
+      "line": 150,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 25,
+      "file": "src/components/Investigation/cards/AnomalySparkline.tsx",
+      "line": 188,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 7,
+      "file": "src/components/Investigation/cards/AnomalySparkline.tsx",
+      "line": 216,
+      "message": "Type 'TimeSeriesDataPoint[] | undefined' is not assignable to type 'TimeSeriesDataPoint[] | null'."
+    },
+    {
+      "code": 2322,
+      "column": 34,
+      "file": "src/components/Investigation/cards/AnomalySparkline.tsx",
+      "line": 234,
+      "message": "Type 'TimeSeriesDataPoint[] | undefined' is not assignable to type 'TimeSeriesDataPoint[] | null'."
+    },
+    {
+      "code": 2345,
+      "column": 15,
+      "file": "src/components/Investigation/cards/CausalTreeCard.tsx",
+      "line": 42,
+      "message": "Argument of type 'TriageStatus | undefined' is not assignable to parameter of type 'SetStateAction<TriageStatus>'."
+    },
+    {
+      "code": 2345,
+      "column": 31,
+      "file": "src/components/Investigation/cards/CausalTreeCard.tsx",
+      "line": 43,
+      "message": "Argument of type 'TriageStatus | undefined' is not assignable to parameter of type 'TriageStatus'."
+    },
+    {
+      "code": 2345,
+      "column": 52,
+      "file": "src/components/Investigation/cards/CausalTreeCard.tsx",
+      "line": 45,
+      "message": "Argument of type 'TriageStatus | undefined' is not assignable to parameter of type 'TriageStatus'."
+    },
+    {
+      "code": 2322,
+      "column": 28,
+      "file": "src/components/Investigation/cards/EvidencePinCard.tsx",
+      "line": 110,
+      "message": "Type '\"root_cause\" | \"cascading_failure\" | \"correlated_anomaly\" | undefined' is not assignable to type 'CausalRole'."
+    },
+    {
+      "code": 2532,
+      "column": 48,
+      "file": "src/components/Investigation/cards/PromQLRunResult.tsx",
+      "line": 44,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 82,
+      "file": "src/components/Investigation/cards/RecommendationCard.tsx",
+      "line": 106,
+      "message": "'urgency' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Investigation/cards/RecommendationCard.tsx",
+      "line": 107,
+      "message": "'urgency' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 51,
+      "file": "src/components/Investigation/cards/RecommendationCard.tsx",
+      "line": 111,
+      "message": "'risk' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 70,
+      "file": "src/components/Investigation/cards/RecommendationCard.tsx",
+      "line": 111,
+      "message": "'risk' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 26,
+      "file": "src/components/Investigation/cards/REDMethodStatusBar.tsx",
+      "line": 88,
+      "message": "'worst' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 17,
+      "file": "src/components/Investigation/cards/REDMethodStatusBar.tsx",
+      "line": 89,
+      "message": "'worst' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 41,
+      "file": "src/components/Investigation/cards/TracingEvidenceCard.tsx",
+      "line": 162,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 17,
+      "file": "src/components/Investigation/ContextScope.tsx",
+      "line": 188,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 27,
+      "file": "src/components/Investigation/ContextScope.tsx",
+      "line": 274,
+      "message": "'topMatch' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 9,
+      "file": "src/components/Investigation/DatabaseWarRoom.tsx",
+      "line": 54,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 47,
+      "file": "src/components/Investigation/DatabaseWarRoom.tsx",
+      "line": 54,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 11,
+      "file": "src/components/Investigation/DatabaseWarRoom.tsx",
+      "line": 205,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 37,
+      "file": "src/components/Investigation/DatabaseWarRoom.tsx",
+      "line": 278,
+      "message": "Argument of type 'TaskEvent | null | undefined' is not assignable to parameter of type 'TaskEvent | null'."
+    },
+    {
+      "code": 18048,
+      "column": 7,
+      "file": "src/components/Investigation/db-board/constants.ts",
+      "line": 81,
+      "message": "'last' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 7,
+      "file": "src/components/Investigation/db-board/constants.ts",
+      "line": 82,
+      "message": "'last' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 38,
+      "file": "src/components/Investigation/db-viz/ExplainPlanTree.tsx",
+      "line": 30,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 35,
+      "file": "src/components/Investigation/db-viz/ExplainPlanTree.tsx",
+      "line": 31,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 34,
+      "file": "src/components/Investigation/db-viz/ExplainPlanTree.tsx",
+      "line": 32,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 34,
+      "file": "src/components/Investigation/db-viz/ExplainPlanTree.tsx",
+      "line": 33,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 71,
+      "file": "src/components/Investigation/db-viz/ExplainPlanTree.tsx",
+      "line": 34,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 3,
+      "file": "src/components/Investigation/db-viz/ExplainPlanTree.tsx",
+      "line": 35,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2532,
+      "column": 17,
+      "file": "src/components/Investigation/db-viz/SlowQueryTimeline.tsx",
+      "line": 41,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 13,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 935,
+      "message": "Type 'import(\"/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/stores/pinStore\").PinnedItem[]' is not assignable to type 'PinnedItem[]'."
+    },
+    {
+      "code": 18048,
+      "column": 58,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 1062,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 74,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 1062,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 77,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 1067,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 11,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 1176,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 1974,
+      "message": "'info' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 67,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 1976,
+      "message": "'info' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 10,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 1977,
+      "message": "'info' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 1982,
+      "message": "'info' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 24,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 2020,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2339,
+      "column": 45,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 2042,
+      "message": "Property 'agents_completed' does not exist on type 'V4Findings'."
+    },
+    {
+      "code": 18048,
+      "column": 40,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 2082,
+      "message": "'meta' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 58,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 2085,
+      "message": "'meta' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 20,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 2086,
+      "message": "'meta' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 74,
+      "file": "src/components/Investigation/EvidenceFindings.tsx",
+      "line": 2088,
+      "message": "'meta' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 7,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 149,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 214,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 429,
+      "message": "'findings.negative_findings' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 485,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 14,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 513,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 10,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 534,
+      "message": "'findings.metric_anomalies' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 62,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 537,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 78,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 537,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 85,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 540,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 66,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 555,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 68,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 566,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 61,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 589,
+      "message": "'findings.pod_statuses' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 18,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 594,
+      "message": "'findings.pod_statuses' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 18,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 600,
+      "message": "'findings.pod_statuses' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 18,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 606,
+      "message": "'findings.pod_statuses' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 16,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 612,
+      "message": "'findings.pod_statuses' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 58,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 766,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 74,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 766,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 118,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 779,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 159,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 779,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 203,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 779,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 77,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 783,
+      "message": "'style' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 11,
+      "file": "src/components/Investigation/EvidenceStack.tsx",
+      "line": 964,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 7,
+      "file": "src/components/Investigation/FixPipelinePanel.tsx",
+      "line": 69,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/Investigation/FixPipelinePanel.tsx",
+      "line": 255,
+      "message": "'cfg' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 81,
+      "file": "src/components/Investigation/FixPipelinePanel.tsx",
+      "line": 257,
+      "message": "'cfg' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 11,
+      "file": "src/components/Investigation/hud/ResolveCinematic.tsx",
+      "line": 20,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 56,
+      "file": "src/components/Investigation/hud/ResolveCinematic.tsx",
+      "line": 20,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 40,
+      "file": "src/components/Investigation/InvestigationLog.tsx",
+      "line": 121,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 9,
+      "file": "src/components/Investigation/InvestigationLog.tsx",
+      "line": 126,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 22,
+      "file": "src/components/Investigation/InvestigationLog.tsx",
+      "line": 129,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 33,
+      "file": "src/components/Investigation/InvestigationLog.tsx",
+      "line": 130,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 21,
+      "file": "src/components/Investigation/InvestigationLog.tsx",
+      "line": 134,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 47,
+      "file": "src/components/Investigation/InvestigationLog.tsx",
+      "line": 135,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 16,
+      "file": "src/components/Investigation/InvestigationLog.tsx",
+      "line": 137,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 13,
+      "file": "src/components/Investigation/InvestigationLog.tsx",
+      "line": 138,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 31,
+      "file": "src/components/Investigation/SurgicalTelescope.tsx",
+      "line": 153,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 41,
+      "file": "src/components/Investigation/SurgicalTelescope.tsx",
+      "line": 155,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 18048,
+      "column": 13,
+      "file": "src/components/Investigation/topology/InteractiveTopology.tsx",
+      "line": 51,
+      "message": "'entry' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 25,
+      "file": "src/components/Investigation/topology/InteractiveTopology.tsx",
+      "line": 72,
+      "message": "'entry' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 37,
+      "file": "src/components/Investigation/topology/ServiceTopologySVG.tsx",
+      "line": 184,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2532,
+      "column": 56,
+      "file": "src/components/Investigation/TraceTelescope/FlowTab.tsx",
+      "line": 209,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 24,
+      "file": "src/components/Investigation/TraceTelescope/FlowTab.tsx",
+      "line": 210,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2538,
+      "column": 13,
+      "file": "src/components/Investigation/TraceTelescope/FlowTab.tsx",
+      "line": 221,
+      "message": "Type 'undefined' cannot be used as an index type."
+    },
+    {
+      "code": 2538,
+      "column": 31,
+      "file": "src/components/Investigation/TraceTelescope/FlowTab.tsx",
+      "line": 221,
+      "message": "Type 'undefined' cannot be used as an index type."
+    },
+    {
+      "code": 2322,
+      "column": 5,
+      "file": "src/components/Investigation/Verdict.tsx",
+      "line": 94,
+      "message": "Type 'VerdictBody | undefined' is not assignable to type 'VerdictBody | null'."
+    },
+    {
+      "code": 18048,
+      "column": 16,
+      "file": "src/components/Investigation/Verdict.tsx",
+      "line": 160,
+      "message": "'first' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 48,
+      "file": "src/components/Investigation/Verdict.tsx",
+      "line": 160,
+      "message": "'first' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 17,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1072,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 27,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1074,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2532,
+      "column": 19,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1076,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 38,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1076,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 57,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1076,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 74,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1076,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 26,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1121,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 26,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1122,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 26,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1123,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 48,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1123,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 70,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1123,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 90,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1123,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 26,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1124,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 48,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1124,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 70,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1124,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 90,
+      "file": "src/components/IPAM/IPAMDashboard.tsx",
+      "line": 1124,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 59,
+      "file": "src/components/IPAM/IPAMSubnetDetail.tsx",
+      "line": 383,
+      "message": "'sc' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 72,
+      "file": "src/components/IPAM/IPAMSubnetDetail.tsx",
+      "line": 385,
+      "message": "'sc' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 108,
+      "file": "src/components/IPAM/IPAMSubnetDetail.tsx",
+      "line": 539,
+      "message": "'sc' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 117,
+      "file": "src/components/IPAM/IPAMSubnetDetail.tsx",
+      "line": 539,
+      "message": "'sc' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 74,
+      "file": "src/components/IPAM/IPAMSubnetDetail.tsx",
+      "line": 540,
+      "message": "'sc' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 30,
+      "file": "src/components/IPAM/IPAMSubnetDetail.tsx",
+      "line": 541,
+      "message": "'sc' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 46,
+      "file": "src/components/IPAM/IPAMSubnetHeatmap.tsx",
+      "line": 31,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 22,
+      "file": "src/components/IPAM/IPAMSubnetHeatmap.tsx",
+      "line": 32,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 9,
+      "file": "src/components/IPAM/IPAMSubnetHeatmap.tsx",
+      "line": 83,
+      "message": "Type 'string | undefined' is not assignable to type 'string | CanvasGradient | CanvasPattern'."
+    },
+    {
+      "code": 18048,
+      "column": 10,
+      "file": "src/components/Layout/SystemHealthTicker.tsx",
+      "line": 26,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 16,
+      "file": "src/components/Layout/SystemHealthTicker.tsx",
+      "line": 31,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 58,
+      "file": "src/components/Layout/SystemHealthTicker.tsx",
+      "line": 38,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 59,
+      "file": "src/components/Layout/SystemHealthTicker.tsx",
+      "line": 39,
+      "message": "'current' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 39,
+      "file": "src/components/Network/DeviceDetailPanel.tsx",
+      "line": 550,
+      "message": "'relStyle' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 34,
+      "file": "src/components/Network/DeviceDetailPanel.tsx",
+      "line": 551,
+      "message": "'relStyle' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 32,
+      "file": "src/components/Network/DeviceMonitoring.tsx",
+      "line": 436,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 55,
+      "file": "src/components/Network/DeviceMonitoring.tsx",
+      "line": 437,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 32,
+      "file": "src/components/Network/DeviceMonitoring.tsx",
+      "line": 439,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 55,
+      "file": "src/components/Network/DeviceMonitoring.tsx",
+      "line": 440,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 46,
+      "file": "src/components/Network/NDMDevicesTab.tsx",
+      "line": 182,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 11,
+      "file": "src/components/Network/NDMDevicesTab.tsx",
+      "line": 183,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2532,
+      "column": 7,
+      "file": "src/components/Network/NDMDevicesTab.tsx",
+      "line": 189,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 44,
+      "file": "src/components/Network/NDMNetFlowTab.tsx",
+      "line": 184,
+      "message": "Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType> & ((value: number, name: NameType, item: Payload<number, NameType>, index: number, payload: Payload<number, NameType>[]) => ReactNode | [...])'."
+    },
+    {
+      "code": 2322,
+      "column": 46,
+      "file": "src/components/Network/NDMNetFlowTab.tsx",
+      "line": 224,
+      "message": "Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType> & ((value: number, name: NameType, item: Payload<number, NameType>, index: number, payload: Payload<number, NameType>[]) => ReactNode | [...])'."
+    },
+    {
+      "code": 2322,
+      "column": 42,
+      "file": "src/components/Network/NDMNetFlowTab.tsx",
+      "line": 258,
+      "message": "Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType> & ((value: number, name: NameType, item: Payload<number, NameType>, index: number, payload: Payload<number, NameType>[]) => ReactNode | [...])'."
+    },
+    {
+      "code": 2322,
+      "column": 17,
+      "file": "src/components/Network/NDMNetFlowTab.tsx",
+      "line": 259,
+      "message": "Type '(label: string) => string' is not assignable to type '((label: ReactNode, payload: readonly Payload<number, NameType>[]) => ReactNode) & ((label: any, payload: Payload<number, NameType>[]) => ReactNode)'."
+    },
+    {
+      "code": 2322,
+      "column": 5,
+      "file": "src/components/Network/NDMSyslogTab.tsx",
+      "line": 184,
+      "message": "Type '{ bg: string; text: string; } | undefined' is not assignable to type '{ bg: string; text: string; }'."
+    },
+    {
+      "code": 2322,
+      "column": 3,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 56,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 18,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 88,
+      "message": "Type 'MonitoredDevice | undefined' is not assignable to type 'MonitoredDevice'."
+    },
+    {
+      "code": 2322,
+      "column": 7,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 129,
+      "message": "Type '(string | undefined)[]' is not assignable to type 'string[]'."
+    },
+    {
+      "code": 2322,
+      "column": 9,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 164,
+      "message": "Type 'MonitoredDevice | undefined' is not assignable to type 'MonitoredDevice'."
+    },
+    {
+      "code": 2532,
+      "column": 21,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 196,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 21,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 197,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 404,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 40,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 517,
+      "message": "'fromNode' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 64,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 517,
+      "message": "'toNode' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 21,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 521,
+      "message": "'fromNode' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 21,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 522,
+      "message": "'fromNode' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 21,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 523,
+      "message": "'toNode' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 21,
+      "file": "src/components/Network/NDMTopologyTab.tsx",
+      "line": 524,
+      "message": "'toNode' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 48,
+      "file": "src/components/Network/NDMTrapsTab.tsx",
+      "line": 270,
+      "message": "'sevStyle' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 39,
+      "file": "src/components/Network/NDMTrapsTab.tsx",
+      "line": 278,
+      "message": "'sevStyle' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 59,
+      "file": "src/components/Network/NDMTrapsTab.tsx",
+      "line": 278,
+      "message": "'sevStyle' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 109,
+      "file": "src/components/Network/NetworkAdaptersView.tsx",
+      "line": 203,
+      "message": "'statusStyle' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 132,
+      "file": "src/components/Network/NetworkAdaptersView.tsx",
+      "line": 203,
+      "message": "'statusStyle' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 26,
+      "file": "src/components/Network/NetworkAdaptersView.tsx",
+      "line": 204,
+      "message": "'statusStyle' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 25,
+      "file": "src/components/Observatory/AlertsTab.tsx",
+      "line": 322,
+      "message": "Type '{ metric: string; operator?: string | undefined; threshold?: number | undefined; }' is not assignable to type 'CompositeAlertCondition'."
+    },
+    {
+      "code": 2322,
+      "column": 25,
+      "file": "src/components/Observatory/AlertsTab.tsx",
+      "line": 333,
+      "message": "Type '{ operator: CompositeAlertCondition[\"operator\"]; metric?: string | undefined; threshold?: number | undefined; }' is not assignable to type 'CompositeAlertCondition'."
+    },
+    {
+      "code": 2322,
+      "column": 25,
+      "file": "src/components/Observatory/AlertsTab.tsx",
+      "line": 348,
+      "message": "Type '{ threshold: number; metric?: string | undefined; operator?: string | undefined; }' is not assignable to type 'CompositeAlertCondition'."
+    },
+    {
+      "code": 2322,
+      "column": 40,
+      "file": "src/components/Observatory/topology/layout/edgeStyles.ts",
+      "line": 18,
+      "message": "Type 'CSSProperties | undefined' is not assignable to type 'CSSProperties'."
+    },
+    {
+      "code": 2769,
+      "column": 27,
+      "file": "src/components/Observatory/topology/LiveTopologyViewV2.tsx",
+      "line": 167,
+      "message": "No overload matches this call."
+    },
+    {
+      "code": 18048,
+      "column": 56,
+      "file": "src/components/Observatory/topology/LiveTopologyViewV2.tsx",
+      "line": 200,
+      "message": "'n.position' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 56,
+      "file": "src/components/Observatory/topology/LiveTopologyViewV2.tsx",
+      "line": 201,
+      "message": "'n.position' is possibly 'undefined'."
+    },
+    {
+      "code": 7006,
+      "column": 17,
+      "file": "src/components/Observatory/topology/LiveTopologyViewV2.tsx",
+      "line": 228,
+      "message": "Parameter 'e' implicitly has an 'any' type."
+    },
+    {
+      "code": 7006,
+      "column": 14,
+      "file": "src/components/Observatory/topology/LiveTopologyViewV2.tsx",
+      "line": 229,
+      "message": "Parameter 'e' implicitly has an 'any' type."
+    },
+    {
+      "code": 7006,
+      "column": 17,
+      "file": "src/components/Observatory/topology/LiveTopologyViewV2.tsx",
+      "line": 238,
+      "message": "Parameter 'e' implicitly has an 'any' type."
+    },
+    {
+      "code": 2345,
+      "column": 14,
+      "file": "src/components/Observatory/topology/LiveTopologyViewV2.tsx",
+      "line": 246,
+      "message": "Argument of type '{ position: { x: number; y: number; } | undefined; id: string; data: any; type?: string | undefined; style?: CSSProperties | undefined; className?: string | undefined; sourcePosition?: Position | undefined; ... 20 more ...; [internalsSymbol]?: { ...; } | undefined; }[]' is not assignable to parameter of type 'SetStateAction<Node<any, string | undefined>[]>'."
+    },
+    {
+      "code": 2322,
+      "column": 21,
+      "file": "src/components/Observatory/TrafficFlowsTab.tsx",
+      "line": 137,
+      "message": "Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType> & ((value: number, name: NameType, item: Payload<number, NameType>, index: number, payload: Payload<number, NameType>[]) => ReactNode | [...])'."
+    },
+    {
+      "code": 2322,
+      "column": 7,
+      "file": "src/components/Security/SecurityResourcesView.tsx",
+      "line": 380,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2532,
+      "column": 46,
+      "file": "src/components/Security/SecurityResourcesView.tsx",
+      "line": 561,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 25,
+      "file": "src/components/Security/SecurityResourcesView.tsx",
+      "line": 588,
+      "message": "'currentTab' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 40,
+      "file": "src/components/Security/SecurityResourcesView.tsx",
+      "line": 588,
+      "message": "Type 'TabDef | undefined' is not assignable to type 'TabDef'."
+    },
+    {
+      "code": 2322,
+      "column": 7,
+      "file": "src/components/Settings/CloudProvidersSection.tsx",
+      "line": 553,
+      "message": "Type 'unknown' is not assignable to type 'ReactNode'."
+    },
+    {
+      "code": 18048,
+      "column": 44,
+      "file": "src/components/Settings/GlobalIntegrationsSection.tsx",
+      "line": 291,
+      "message": "'addConfig' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 113,
+      "file": "src/components/Settings/GlobalIntegrationsSection.tsx",
+      "line": 291,
+      "message": "'addConfig' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 138,
+      "file": "src/components/Settings/GlobalIntegrationsSection.tsx",
+      "line": 291,
+      "message": "'addConfig' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 114,
+      "file": "src/components/Settings/GlobalIntegrationsSection.tsx",
+      "line": 292,
+      "message": "'addConfig' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 13,
+      "file": "src/components/Settings/SettingsView.tsx",
+      "line": 323,
+      "message": "Type '\"fail\" | \"idle\" | \"pass\" | undefined' is not assignable to type '\"fail\" | \"idle\" | \"pass\"'."
+    },
+    {
+      "code": 2322,
+      "column": 13,
+      "file": "src/components/Settings/SettingsView.tsx",
+      "line": 332,
+      "message": "Type '\"fail\" | \"idle\" | \"pass\" | undefined' is not assignable to type '\"fail\" | \"idle\" | \"pass\"'."
+    },
+    {
+      "code": 2322,
+      "column": 13,
+      "file": "src/components/Settings/SettingsView.tsx",
+      "line": 341,
+      "message": "Type '\"fail\" | \"idle\" | \"pass\" | undefined' is not assignable to type '\"fail\" | \"idle\" | \"pass\"'."
+    },
+    {
+      "code": 2578,
+      "column": 3,
+      "file": "src/components/shell/__tests__/EditorialCarousel.test.tsx",
+      "line": 27,
+      "message": "Unused '@ts-expect-error' directive."
+    },
+    {
+      "code": 2345,
+      "column": 33,
+      "file": "src/components/shell/__tests__/StickyStack.test.tsx",
+      "line": 87,
+      "message": "Argument of type 'MockResizeObserver | undefined' is not assignable to parameter of type 'object'."
+    },
+    {
+      "code": 2322,
+      "column": 9,
+      "file": "src/components/shell/EditorialScrollArea.tsx",
+      "line": 53,
+      "message": "Type 'RefObject<HTMLDivElement | null> | undefined' is not assignable to type 'LegacyRef<HTMLDivElement> | undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 7,
+      "file": "src/components/shell/TruncatedLabel.tsx",
+      "line": 54,
+      "message": "Type 'Ref<HTMLElement>' is not assignable to type 'LegacyRef<HTMLDivElement> | undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 180,
+      "message": "'snap' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 181,
+      "message": "'snap' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 190,
+      "message": "'snap' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 14,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 191,
+      "message": "'snap' is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 9,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 898,
+      "message": "Type '{ x: number; y: number; } | undefined' is not assignable to type 'XYPosition'."
+    },
+    {
+      "code": 18048,
+      "column": 25,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 911,
+      "message": "'handles' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 25,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 912,
+      "message": "'handles' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 23,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 918,
+      "message": "'handles' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 23,
+      "file": "src/components/TopologyEditor/TopologyEditorView.tsx",
+      "line": 919,
+      "message": "'handles' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 16,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 546,
+      "message": "Argument of type 'string | null | undefined' is not assignable to parameter of type 'string | null'."
+    },
+    {
+      "code": 18048,
+      "column": 49,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 585,
+      "message": "'currentSession' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 17,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 645,
+      "message": "Argument of type '(prev: Sessions) => { [x: string]: Session | { messages: Message[]; id?: string | undefined; name?: string | undefined; agentResults?: AgentResults | undefined; ... 4 more ...; backendSessionId?: string | ... 1 more ... | undefined; }; }' is not assignable to parameter of type 'SetStateAction<Sessions>'."
+    },
+    {
+      "code": 2532,
+      "column": 23,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 649,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 9,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 661,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 19,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 665,
+      "message": "Argument of type '(prev: Sessions) => { [x: string]: Session | { messages: (Message | { role: \"assistant\"; content: any; timestamp: any; actions: { id: string; label: string; icon: LucideIcon; }[]; })[]; ... 7 more ...; backendSessionId?: string | ... 1 more ... | undefined; }; }' is not assignable to parameter of type 'SetStateAction<Sessions>'."
+    },
+    {
+      "code": 2532,
+      "column": 25,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 669,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 19,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 687,
+      "message": "Argument of type '(prev: Sessions) => { [x: string]: Session | { messages: Message[]; id?: string | undefined; name?: string | undefined; agentResults?: AgentResults | undefined; ... 4 more ...; backendSessionId?: string | ... 1 more ... | undefined; }; }' is not assignable to parameter of type 'SetStateAction<Sessions>'."
+    },
+    {
+      "code": 2532,
+      "column": 25,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 691,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 17,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 737,
+      "message": "Argument of type '(prev: Sessions) => { [x: string]: Session | { name: string; targetType: \"application\" | \"infrastructure\"; messages: Message[]; isProcessing: true; progress: number; id?: string | undefined; agentResults?: AgentResults | undefined; wsConnected?: boolean | undefined; backendSessionId?: string | ... 1 more ... | undef...' is not assignable to parameter of type 'SetStateAction<Sessions>'."
+    },
+    {
+      "code": 2532,
+      "column": 23,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 743,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 19,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 766,
+      "message": "Argument of type '(prev: Sessions) => { [x: string]: Session | { backendSessionId: any; progress: number; id?: string | undefined; name?: string | undefined; messages?: Message[] | undefined; agentResults?: AgentResults | undefined; targetType?: string | ... 1 more ... | undefined; isProcessing?: boolean | undefined; wsConnected?: bo...' is not assignable to parameter of type 'SetStateAction<Sessions>'."
+    },
+    {
+      "code": 2345,
+      "column": 19,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 777,
+      "message": "Argument of type '(prev: Sessions) => { [x: string]: Session | { isProcessing: false; progress: number; messages: Message[]; id?: string | undefined; name?: string | undefined; agentResults?: AgentResults | undefined; targetType?: string | ... 1 more ... | undefined; wsConnected?: boolean | undefined; backendSessionId?: string | ... ...' is not assignable to parameter of type 'SetStateAction<Sessions>'."
+    },
+    {
+      "code": 2532,
+      "column": 25,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 783,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 16,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 959,
+      "message": "'currentSession' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 31,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 964,
+      "message": "'currentSession' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 30,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 965,
+      "message": "'currentSession' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 27,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 966,
+      "message": "'currentSession' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 34,
+      "file": "src/components/TroubleshootingUI.tsx",
+      "line": 967,
+      "message": "'currentSession' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 29,
+      "file": "src/components/Workflows/Builder/__tests__/StepList.test.tsx",
+      "line": 52,
+      "message": "Argument of type 'HTMLElement | undefined' is not assignable to parameter of type 'HTMLElement'."
+    },
+    {
+      "code": 18048,
+      "column": 3,
+      "file": "src/components/Workflows/Builder/__tests__/StepList.test.tsx",
+      "line": 60,
+      "message": "'target' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 22,
+      "file": "src/components/Workflows/Builder/__tests__/StepList.test.tsx",
+      "line": 64,
+      "message": "Argument of type 'HTMLElement | undefined' is not assignable to parameter of type 'Element | Node | Window | Document'."
+    },
+    {
+      "code": 2345,
+      "column": 18,
+      "file": "src/components/Workflows/Builder/__tests__/StepList.test.tsx",
+      "line": 65,
+      "message": "Argument of type 'HTMLElement | undefined' is not assignable to parameter of type 'Element | Node | Window | Document'."
+    },
+    {
+      "code": 2532,
+      "column": 22,
+      "file": "src/components/Workflows/Builder/__tests__/StepList.test.tsx",
+      "line": 213,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2550,
+      "column": 38,
+      "file": "src/components/Workflows/Builder/InputMapping/__tests__/InputMappingField.test.tsx",
+      "line": 57,
+      "message": "Property 'at' does not exist on type 'any[][]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later."
+    },
+    {
+      "code": 2345,
+      "column": 21,
+      "file": "src/components/Workflows/Builder/InputMapping/__tests__/InputMappingField.test.tsx",
+      "line": 186,
+      "message": "Argument of type 'HTMLElement | undefined' is not assignable to parameter of type 'Element'."
+    },
+    {
+      "code": 2550,
+      "column": 38,
+      "file": "src/components/Workflows/Builder/InputMapping/__tests__/InputMappingField.test.tsx",
+      "line": 187,
+      "message": "Property 'at' does not exist on type 'any[][]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later."
+    },
+    {
+      "code": 2345,
+      "column": 37,
+      "file": "src/components/Workflows/Builder/InputMapping/__tests__/MappingModeToggle.test.tsx",
+      "line": 55,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string | RegExp'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 105,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 22,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 160,
+      "message": "Argument of type 'HTMLElement | undefined' is not assignable to parameter of type 'Element'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 162,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 22,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 183,
+      "message": "Argument of type 'HTMLElement | undefined' is not assignable to parameter of type 'Element'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 184,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 22,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 222,
+      "message": "Argument of type 'HTMLElement | undefined' is not assignable to parameter of type 'Element'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 223,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 224,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/AdvancedAstBuilder.test.tsx",
+      "line": 225,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/PredicateBuilder.switch.test.tsx",
+      "line": 86,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2339,
+      "column": 23,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/__tests__/SimplePredicate.test.tsx",
+      "line": 39,
+      "message": "Property 'sort' does not exist on type 'readonly [\"eq\", \"neq\", \"contains\", \"not_contains\", \"exists\", \"not_exists\"]'."
+    },
+    {
+      "code": 2677,
+      "column": 40,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/AdvancedAstBuilder.tsx",
+      "line": 13,
+      "message": "A type predicate's type must be assignable to its parameter's type."
+    },
+    {
+      "code": 2322,
+      "column": 53,
+      "file": "src/components/Workflows/Builder/PredicateBuilder/index.tsx",
+      "line": 26,
+      "message": "Type 'PredicateExpr | undefined' is not assignable to type 'PredicateExpr | null'."
+    },
+    {
+      "code": 2345,
+      "column": 45,
+      "file": "src/components/Workflows/Builder/RefPicker/RefPicker.tsx",
+      "line": 45,
+      "message": "Argument of type 'RefSource | undefined' is not assignable to parameter of type 'RefSource'."
+    },
+    {
+      "code": 18048,
+      "column": 16,
+      "file": "src/components/Workflows/Builder/StepDrawer.tsx",
+      "line": 122,
+      "message": "'up' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 17,
+      "file": "src/components/Workflows/Builder/StepDrawer.tsx",
+      "line": 123,
+      "message": "'up' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 11,
+      "file": "src/components/Workflows/Builder/StepList.tsx",
+      "line": 91,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 25,
+      "file": "src/components/Workflows/Builder/StepList.tsx",
+      "line": 91,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 35,
+      "file": "src/components/Workflows/Builder/StepList.tsx",
+      "line": 176,
+      "message": "Argument of type 'StepSpec | undefined' is not assignable to parameter of type 'StepSpec'."
+    },
+    {
+      "code": 18048,
+      "column": 10,
+      "file": "src/components/Workflows/Builder/useBuilderState.ts",
+      "line": 137,
+      "message": "'step' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 28,
+      "file": "src/components/Workflows/Builder/useBuilderState.ts",
+      "line": 142,
+      "message": "'step' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 40,
+      "file": "src/components/Workflows/Builder/useBuilderState.ts",
+      "line": 145,
+      "message": "'step' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 19,
+      "file": "src/components/Workflows/Builder/useBuilderState.ts",
+      "line": 148,
+      "message": "'step' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 10,
+      "file": "src/components/Workflows/Builder/useBuilderState.ts",
+      "line": 151,
+      "message": "'step' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 9,
+      "file": "src/components/Workflows/Builder/useBuilderState.ts",
+      "line": 158,
+      "message": "'step' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 46,
+      "file": "src/components/Workflows/Builder/useBuilderState.ts",
+      "line": 158,
+      "message": "'step' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 36,
+      "file": "src/components/Workflows/Builder/useBuilderState.ts",
+      "line": 161,
+      "message": "'step' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 63,
+      "file": "src/components/Workflows/Builder/WorkflowBuilderPage.tsx",
+      "line": 86,
+      "message": "'latest' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 52,
+      "file": "src/components/Workflows/Builder/WorkflowBuilderPage.tsx",
+      "line": 88,
+      "message": "'latest' is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 28,
+      "file": "src/components/Workflows/Builder/WorkflowBuilderPage.tsx",
+      "line": 305,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2532,
+      "column": 9,
+      "file": "src/components/Workflows/Builder/WorkflowBuilderPage.tsx",
+      "line": 309,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2353,
+      "column": 67,
+      "file": "src/components/Workflows/Runs/__tests__/interaction.test.tsx",
+      "line": 106,
+      "message": "Object literal may only specify known properties, and 'depends_on' does not exist in type 'StepSpec'."
+    },
+    {
+      "code": 2741,
+      "column": 7,
+      "file": "src/components/Workflows/Runs/__tests__/interaction.test.tsx",
+      "line": 109,
+      "message": "Property 'compiled' is missing in type '{ workflow_id: string; version: number; created_at: string; dag: { inputs_schema: {}; steps: StepSpec[]; }; }' but required in type 'WorkflowVersionDetail'."
+    },
+    {
+      "code": 2353,
+      "column": 67,
+      "file": "src/components/Workflows/Runs/__tests__/RunDetailPage.toggle.test.tsx",
+      "line": 103,
+      "message": "Object literal may only specify known properties, and 'depends_on' does not exist in type 'StepSpec'."
+    },
+    {
+      "code": 2741,
+      "column": 7,
+      "file": "src/components/Workflows/Runs/__tests__/RunDetailPage.toggle.test.tsx",
+      "line": 106,
+      "message": "Property 'compiled' is missing in type '{ workflow_id: string; version: number; created_at: string; dag: { inputs_schema: {}; steps: StepSpec[]; }; }' but required in type 'WorkflowVersionDetail'."
+    },
+    {
+      "code": 18048,
+      "column": 7,
+      "file": "src/components/Workflows/Runs/__tests__/useRunEvents.test.ts",
+      "line": 91,
+      "message": "'es' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/__tests__/useRunEvents.test.ts",
+      "line": 100,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 7,
+      "file": "src/components/Workflows/Runs/__tests__/useRunEvents.test.ts",
+      "line": 112,
+      "message": "'es' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/__tests__/useRunEvents.test.ts",
+      "line": 120,
+      "message": "'es' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/__tests__/useRunEvents.test.ts",
+      "line": 131,
+      "message": "'es' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/__tests__/useRunEvents.test.ts",
+      "line": 135,
+      "message": "'es' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/DagEdge.test.tsx",
+      "line": 47,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/DagEdge.test.tsx",
+      "line": 58,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/DagEdge.test.tsx",
+      "line": 60,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/DagEdge.test.tsx",
+      "line": 61,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/dagHelpers.test.ts",
+      "line": 115,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/dagTypes.test.ts",
+      "line": 95,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/dagTypes.test.ts",
+      "line": 96,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/useElkLayout.test.ts",
+      "line": 109,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 22,
+      "file": "src/components/Workflows/Runs/DagView/__tests__/useElkLayout.test.ts",
+      "line": 110,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 15,
+      "file": "src/components/Workflows/Runs/DagView/DagEdge.tsx",
+      "line": 15,
+      "message": "'first' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 26,
+      "file": "src/components/Workflows/Runs/DagView/DagEdge.tsx",
+      "line": 15,
+      "message": "'first' is possibly 'undefined'."
+    },
+    {
+      "code": 2741,
+      "column": 7,
+      "file": "src/components/Workflows/Runs/DagView/DagNode.tsx",
+      "line": 5,
+      "message": "Property 'cancelling' is missing in type '{ pending: string; running: string; success: string; failed: string; skipped: string; cancelled: string; }' but required in type 'Record<Status, string>'."
+    },
+    {
+      "code": 2339,
+      "column": 25,
+      "file": "src/components/Workflows/Runs/DagView/useElkLayout.ts",
+      "line": 97,
+      "message": "Property 'width' does not exist on type 'Omit<{ id: string; layoutOptions: { 'elk.algorithm': string; 'elk.direction': string; 'elk.edgeRouting': string; 'elk.layered.spacing.nodeNodeBetweenLayers': string; }; children: { id: string; width: number; height: number; }[]; edges: { ...; }[]; }, \"children\"> & { ...; }'."
+    },
+    {
+      "code": 2339,
+      "column": 26,
+      "file": "src/components/Workflows/Runs/DagView/useElkLayout.ts",
+      "line": 98,
+      "message": "Property 'height' does not exist on type 'Omit<{ id: string; layoutOptions: { 'elk.algorithm': string; 'elk.direction': string; 'elk.edgeRouting': string; 'elk.layered.spacing.nodeNodeBetweenLayers': string; }; children: { id: string; width: number; height: number; }[]; edges: { ...; }[]; }, \"children\"> & { ...; }'."
+    },
+    {
+      "code": 2322,
+      "column": 5,
+      "file": "src/components/Workflows/Runs/recentRuns.ts",
+      "line": 46,
+      "message": "Type '{ status: Status; runId?: string | undefined; workflowId?: string | undefined; workflowName?: string; startedAt?: string | undefined; }' is not assignable to type 'RecentRunEntry'."
+    },
+    {
+      "code": 2345,
+      "column": 61,
+      "file": "src/components/Workflows/Runs/RunDetailPage.tsx",
+      "line": 55,
+      "message": "Argument of type 'string' is not assignable to parameter of type 'number'."
+    },
+    {
+      "code": 2345,
+      "column": 62,
+      "file": "src/components/Workflows/Runs/RunDetailPage.tsx",
+      "line": 132,
+      "message": "Argument of type 'string' is not assignable to parameter of type 'number'."
+    },
+    {
+      "code": 2550,
+      "column": 38,
+      "file": "src/components/Workflows/Shared/__tests__/SchemaField.test.tsx",
+      "line": 241,
+      "message": "Property 'at' does not exist on type 'any[][]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later."
+    },
+    {
+      "code": 18048,
+      "column": 13,
+      "file": "src/components/Workflows/Shared/ConfirmDeleteDialog.tsx",
+      "line": 41,
+      "message": "'last' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 13,
+      "file": "src/components/Workflows/Shared/ConfirmDeleteDialog.tsx",
+      "line": 46,
+      "message": "'first' is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 37,
+      "file": "src/components/Workflows/Shared/VersionSwitcher.tsx",
+      "line": 52,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 12,
+      "file": "src/contexts/ChatContext.tsx",
+      "line": 279,
+      "message": "'last' is possibly 'undefined'."
+    },
+    {
+      "code": 18048,
+      "column": 67,
+      "file": "src/contexts/ChatContext.tsx",
+      "line": 280,
+      "message": "'last' is possibly 'undefined'."
+    },
+    {
+      "code": 2538,
+      "column": 20,
+      "file": "src/contexts/NavigationContext.tsx",
+      "line": 64,
+      "message": "Type 'undefined' cannot be used as an index type."
+    },
+    {
+      "code": 2345,
+      "column": 17,
+      "file": "src/contexts/TelescopeContext.tsx",
+      "line": 56,
+      "message": "Argument of type 'TelescopeTarget | undefined' is not assignable to parameter of type 'SetStateAction<TelescopeTarget | null>'."
+    },
+    {
+      "code": 2345,
+      "column": 37,
+      "file": "src/hooks/useKeyboardShortcuts.ts",
+      "line": 54,
+      "message": "Argument of type 'CapabilityType | undefined' is not assignable to parameter of type 'CapabilityType'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/services/__tests__/runs.test.ts",
+      "line": 90,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/services/__tests__/workflows.test.ts",
+      "line": 38,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/services/__tests__/workflows.test.ts",
+      "line": 107,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 11,
+      "file": "src/types/__tests__/workflow-types.test.ts",
+      "line": 28,
+      "message": "Type '\"succeeded\"' is not assignable to type 'Status'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/types/__tests__/workflow-types.test.ts",
+      "line": 85,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 12,
+      "file": "src/types/__tests__/workflow-types.test.ts",
+      "line": 114,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2345,
+      "column": 30,
+      "file": "src/utils/networkValidation.ts",
+      "line": 32,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 27,
+      "file": "src/utils/networkValidation.ts",
+      "line": 75,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 26,
+      "file": "src/utils/networkValidation.ts",
+      "line": 116,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2345,
+      "column": 64,
+      "file": "src/utils/networkValidation.ts",
+      "line": 116,
+      "message": "Argument of type 'string | undefined' is not assignable to parameter of type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 24,
+      "file": "src/utils/networkValidation.ts",
+      "line": 117,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2322,
+      "column": 34,
+      "file": "src/utils/networkValidation.ts",
+      "line": 117,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    },
+    {
+      "code": 2532,
+      "column": 26,
+      "file": "src/utils/networkValidation.ts",
+      "line": 230,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 47,
+      "file": "src/utils/networkValidation.ts",
+      "line": 230,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 45,
+      "file": "src/utils/networkValidation.ts",
+      "line": 233,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 71,
+      "file": "src/utils/networkValidation.ts",
+      "line": 233,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 100,
+      "file": "src/utils/networkValidation.ts",
+      "line": 233,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 126,
+      "file": "src/utils/networkValidation.ts",
+      "line": 233,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 19,
+      "file": "src/utils/networkValidation.ts",
+      "line": 235,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2532,
+      "column": 18,
+      "file": "src/utils/parseResourceEntities.tsx",
+      "line": 78,
+      "message": "Object is possibly 'undefined'."
+    },
+    {
+      "code": 2322,
+      "column": 9,
+      "file": "src/utils/parseResourceEntities.tsx",
+      "line": 86,
+      "message": "Type 'string | undefined' is not assignable to type 'string'."
+    }
+  ]
+}

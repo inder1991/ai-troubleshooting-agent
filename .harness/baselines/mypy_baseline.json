@@ -1,0 +1,6 @@
+{
+  "_note": "mypy not on PATH at baseline generation time",
+  "generated_at": "2026-04-26T18:56:53.130258+00:00",
+  "tool_version": "unavailable",
+  "violations": []
+}

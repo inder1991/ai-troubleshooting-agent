@@ -38,3 +38,17 @@ ignore = [
 force-single-line = false
 force-sort-within-sections = true
 known-first-party = ["src"]
+
+# Q19 — mypy strict per-module on the spine. Drift detection (no new
+# errors allowed; baseline-growth requires ADR) lands in Sprint H.1d.
+[tool.mypy]
+python_version = "3.14"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["src.storage.*", "src.learning.*", "src.models.*", "src.api.*"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "src.agents.*.runners.*"
+strict = true

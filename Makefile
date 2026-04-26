@@ -127,3 +127,6 @@ harness:  ## Regenerate .harness/generated/ from code (per H-4).
 
 harness-install:  ## One-time installer for the pre-commit hook (per H-18).
 	@bash tools/install_pre_commit.sh
+
+harness-typecheck-baseline:  ## Q19 — regenerate mypy + tsc baselines.
+	@python3 tools/generate_typecheck_baseline.py
