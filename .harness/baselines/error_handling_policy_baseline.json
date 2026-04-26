@@ -1,0 +1,702 @@
+[
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 274,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 480,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 522,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 532,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 542,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 563,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 603,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 627,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 269,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 558,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 597,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 621,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_session_endpoints.py",
+    "line": 129,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_session_endpoints.py",
+    "line": 171,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/discovery_endpoints.py",
+    "line": 66,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/discovery_endpoints.py",
+    "line": 96,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 65,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 81,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 97,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 114,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 103,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 709,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 575,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 672,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 707,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 418,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 828,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1284,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1406,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1405,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1436,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1456,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1453,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1455,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 264,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/pr_endpoints.py",
+    "line": 88,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_catalog.py",
+    "line": 25,
+    "rule": "Q17.http-exception-needs-detail"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_closure.py",
+    "line": 254,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_closure.py",
+    "line": 359,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_closure.py",
+    "line": 619,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 115,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 310,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 414,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 113,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 690,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 896,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1280,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1893,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2101,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2103,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3022,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3017,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3019,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3021,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1183,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1269,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 436,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 301,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 41,
+    "rule": "Q17.http-exception-needs-detail"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 106,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 111,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 170,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 175,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 177,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 296,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 347,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 363,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 432,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 447,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 148,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 320,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 376,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_v5.py",
+    "line": 243,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/websocket.py",
+    "line": 101,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/campaign_orchestrator.py",
+    "line": 309,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "line": 897,
+    "rule": "Q17.generic-exception-raised"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "line": 913,
+    "rule": "Q17.generic-exception-raised"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "line": 920,
+    "rule": "Q17.generic-exception-raised"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "line": 936,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "line": 955,
+    "rule": "Q17.generic-exception-raised"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/validators.py",
+    "line": 151,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/validators.py",
+    "line": 217,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent4_metrics_analyzer.py",
+    "line": 36,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent4_metrics_analyzer.py",
+    "line": 54,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent4_metrics_analyzer.py",
+    "line": 36,
+    "rule": "Q17.generic-exception-raised"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent4_metrics_analyzer.py",
+    "line": 54,
+    "rule": "Q17.generic-exception-raised"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cancellation.py",
+    "line": 78,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/change_agent.py",
+    "line": 272,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/change_agent.py",
+    "line": 743,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/signal_normalizer.py",
+    "line": 153,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
+    "line": 1362,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
+    "line": 1390,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster_client/k8s_client.py",
+    "line": 1202,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
+    "line": 361,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/code_agent.py",
+    "line": 330,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/graph_v2.py",
+    "line": 508,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/elk_pagination.py",
+    "line": 87,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
+    "line": 335,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_agent.py",
+    "line": 170,
+    "rule": "Q17.reraise-without-from"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/k8s_token_watcher.py",
+    "line": 54,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 826,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 2629,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 288,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 728,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 818,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 861,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 1374,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 749,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "line": 2094,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_processing.py",
+    "line": 38,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "line": 331,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "line": 354,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "line": 754,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "line": 931,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "line": 941,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "line": 1016,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/network/report_generator.py",
+    "line": 31,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/react_base.py",
+    "line": 190,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1026,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1167,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1713,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1721,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1942,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1950,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2049,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2057,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2125,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2133,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2141,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2323,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2330,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2338,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 892,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1021,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1962,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 2299,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1797,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1842,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "line": 1824,
+    "rule": "Q17.no-pass-in-except"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/tracing/backends/jaeger.py",
+    "line": 199,
+    "rule": "Q17.no-pass-in-except"
+  }
+]
