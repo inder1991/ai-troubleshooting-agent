@@ -1,0 +1,48 @@
+# Q12 — performance budgets.
+#
+# Hard gates fail `make validate-fast`. Soft gates report and warn but
+# don't block (CI-variable signals: API latency from synthetic load,
+# Lighthouse from a snapshot run).
+#
+# Default agent budget caps tool calls / tokens / wall clock per
+# investigation. Workflow-specific overrides go under hard.agent_budgets.overrides.
+
+version: 1
+
+hard:
+  agent_budgets:
+    default:
+      tool_calls_max: 20
+      tokens_max: 20000
+      wall_clock_max_s: 30
+    overrides: {}
+    # example overrides:
+    #   wide_investigation:
+    #     tool_calls_max: 40
+    #     tokens_max: 40000
+    #     wall_clock_max_s: 60
+
+  database:
+    # Single StorageGateway query budget (test-fixture / CI gate).
+    # Production p99 is tracked under soft.api_latency.
+    single_query_max_ms: 100
+
+  frontend_bundle:
+    # All numbers are gzipped sizes from `vite build` stats.json.
+    initial_js_kb_gzipped: 220
+    per_route_chunk_kb_gzipped: 100
+    total_css_kb_gzipped: 50
+
+soft:
+  api_latency:
+    # CI-variable: surface in PR comments, never block merge.
+    p99_ms_per_class:
+      read: 200
+      mutate: 500
+      llm_invoke: 5000
+
+  frontend_rendering:
+    # Lighthouse score targets at p75 on synthetic device profile.
+    first_contentful_paint_ms: 1500
+    time_to_interactive_ms: 3000
+    cumulative_layout_shift: 0.1
