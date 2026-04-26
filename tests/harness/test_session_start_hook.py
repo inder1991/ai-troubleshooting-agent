@@ -7,7 +7,10 @@ import os
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SETTINGS = REPO_ROOT / ".claude" / "settings.local.json"
+# settings.json is tracked (per-repo); settings.local.json is gitignored
+# (per-user override). The harness ships its hook in the tracked file.
+SETTINGS = REPO_ROOT / ".claude" / "settings.json"
+SETTINGS_LOCAL = REPO_ROOT / ".claude" / "settings.local.json"
 WRAPPER = REPO_ROOT / "tools" / "_session_start_hook.sh"
 
 
@@ -16,12 +19,25 @@ def test_settings_file_is_valid_json() -> None:
     json.loads(SETTINGS.read_text(encoding="utf-8"))
 
 
+def _all_session_hooks() -> list[dict]:
+    invocations: list[dict] = []
+    for path in (SETTINGS, SETTINGS_LOCAL):
+        if not path.exists():
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        hooks = (data.get("hooks") or {}).get("SessionStart") or []
+        for entry in hooks:
+            invocations.extend(entry.get("hooks") or [])
+    return invocations
+
+
 def test_session_start_hook_is_declared() -> None:
-    data = json.loads(SETTINGS.read_text(encoding="utf-8"))
-    hooks = (data.get("hooks") or {}).get("SessionStart") or []
-    assert hooks, "no SessionStart hook declared"
-    invocations = [h for entry in hooks for h in (entry.get("hooks") or [])]
-    assert any("_session_start_hook.sh" in (h.get("command") or "") for h in invocations), invocations
+    invocations = _all_session_hooks()
+    assert invocations, "no SessionStart hook declared in either settings file"
+    assert any(
+        "_session_start_hook.sh" in (h.get("command") or "")
+        for h in invocations
+    ), invocations
 
 
 def test_wrapper_script_is_executable() -> None:
