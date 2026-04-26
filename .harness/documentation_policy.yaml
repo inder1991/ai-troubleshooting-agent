@@ -1,0 +1,26 @@
+spine_python_paths:
+  - backend/src/api/**
+  - backend/src/storage/gateway.py
+  - backend/src/models/api/**
+  - backend/src/models/agent/**
+  - backend/src/agents/**/runners/**
+  - tools/**
+  - .harness/checks/**
+  - .harness/generators/**
+
+frontend_jsdoc_paths:
+  - frontend/src/hooks/**
+  - frontend/src/lib/**
+  - frontend/src/services/**
+
+adr_required_on_change:
+  - .harness/dependencies.yaml
+  - .harness/performance_budgets.yaml
+  - .harness/security_policy.yaml
+  - .harness/accessibility_policy.yaml
+  - .harness/documentation_policy.yaml
+  - .harness/logging_policy.yaml
+  - .harness/error_handling_policy.yaml
+  - .harness/conventions_policy.yaml
+  - .harness/typecheck_policy.yaml
+  - .harness/checks/**
