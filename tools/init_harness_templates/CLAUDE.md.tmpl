@@ -1,0 +1,29 @@
+---
+name: root-claude-md
+owner: {{OWNER}}
+priority: 1
+applies_to: ["**"]
+type: behavior
+---
+
+# Project rules
+
+This repo uses the AI harness. Always run `make validate-fast` before
+declaring a task done.
+
+## Rule loading contract
+1. Root rules: this file (≤ 70 lines).
+2. Directory rules: walk up from current file collecting CLAUDE.md.
+3. Generated rules: `.harness/generated/*.json` (auto-derived).
+4. Cross-cutting rules: `.harness/*.md` matched via `applies_to`.
+
+Local-most wins. Conflicts surface as lint errors.
+
+## Tech stack
+{{TECH_STACK}}
+
+## Validation
+- `make validate-fast`: lint + custom checks (< 30s).
+- `make validate-full`: + tests + heavy audits.
+
+Discipline checklist: `CONTRIBUTING.md`.

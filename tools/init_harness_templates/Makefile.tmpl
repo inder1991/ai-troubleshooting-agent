@@ -1,0 +1,18 @@
+.PHONY: validate-fast validate-full validate harness harness-install harness-baseline-refresh
+
+validate-fast:  ## Inner-loop gate (< 30s) per H-17.
+	python3 tools/run_validate.py --fast
+
+validate-full:  ## Pre-commit / CI gate.
+	python3 tools/run_validate.py --full
+
+validate: validate-fast
+
+harness:  ## Regenerate every .harness/generated/*.json (per H-4).
+	python3 tools/run_harness_regen.py
+
+harness-install:  ## Install pre-commit hook (per H-18).
+	bash tools/install_pre_commit.sh
+
+harness-baseline-refresh:  ## Regenerate every .harness/baselines/<rule>_baseline.json deterministically.
+	python3 tools/refresh_baselines.py
