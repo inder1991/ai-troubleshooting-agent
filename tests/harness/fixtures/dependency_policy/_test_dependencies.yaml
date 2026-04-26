@@ -1,0 +1,24 @@
+# Mini policy used only by the H.1a.5 fixtures via --policy override.
+python:
+  allowed:
+    - fastapi
+    - httpx
+    - sqlmodel
+    - pydantic
+    - structlog
+    - opentelemetry-api
+  allowed_on_spine:
+    - fastapi
+    - httpx
+    - sqlmodel
+    - pydantic
+
+npm:
+  allowed:
+    - react
+    - "@tanstack/react-query"
+    - "react-router-dom"
+
+global_blacklist:
+  - "left-pad"
+  - "evil-package"

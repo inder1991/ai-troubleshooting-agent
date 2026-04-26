@@ -1,0 +1,8 @@
+{
+  "name": "x",
+  "version": "0.0.0",
+  "dependencies": {
+    "react": "18.0.0",
+    "ungoverned-lib": "1.0.0"
+  }
+}

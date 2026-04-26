@@ -1,0 +1,7 @@
+[project]
+name = "x"
+version = "0.0.0"
+dependencies = [
+  "fastapi",
+  "some-unlisted-pkg",
+]
