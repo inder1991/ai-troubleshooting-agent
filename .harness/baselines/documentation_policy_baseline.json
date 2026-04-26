@@ -1,0 +1,3832 @@
+[
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/assistant_endpoints.py",
+    "line": 12,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/assistant_endpoints.py",
+    "line": 17,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/assistant_endpoints.py",
+    "line": 24,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/assistant_endpoints.py",
+    "line": 49,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/auth.py",
+    "line": 69,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 17,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 31,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 37,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 44,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 50,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 57,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 63,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 70,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 76,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 83,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 89,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 96,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/cloud_endpoints.py",
+    "line": 102,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 79,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 109,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 141,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 189,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 392,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 400,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 705,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 734,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 126,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 135,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 158,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 173,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "line": 180,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 86,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 98,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 108,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 112,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 119,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 124,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 132,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 150,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 155,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 164,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 177,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 220,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 340,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 355,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 360,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 371,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 379,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 387,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 396,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 408,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 427,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 439,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 448,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 457,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 472,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 484,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 496,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 502,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 508,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 517,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 526,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 536,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 546,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 583,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/db_endpoints.py",
+    "line": 607,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/discovery_endpoints.py",
+    "line": 36,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 32,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 37,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 45,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 51,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 57,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 63,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 71,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 91,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/dns_endpoints.py",
+    "line": 100,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/export_endpoints.py",
+    "line": 18,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/export_endpoints.py",
+    "line": 43,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/export_endpoints.py",
+    "line": 55,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/export_endpoints.py",
+    "line": 67,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/export_endpoints.py",
+    "line": 79,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "line": 40,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "line": 53,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "line": 57,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "line": 61,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "line": 70,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 27,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 34,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 42,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 50,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 58,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 74,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 90,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 106,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/flow_endpoints.py",
+    "line": 120,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 188,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 295,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 795,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "line": 842,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/middleware_observability.py",
+    "line": 58,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 8,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 15,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 23,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 32,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 38,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 46,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 55,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 59,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 65,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 121,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 174,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 191,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 195,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 200,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 212,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 219,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 232,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 240,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 244,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/models.py",
+    "line": 152,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 38,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 311,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 319,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 330,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 342,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 350,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 364,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 372,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 380,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 394,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 405,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 413,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 427,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 438,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 446,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "line": 457,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_alert_endpoints.py",
+    "line": 78,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_chat_endpoints.py",
+    "line": 20,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_chat_endpoints.py",
+    "line": 28,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_discovery_endpoints.py",
+    "line": 13,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_discovery_endpoints.py",
+    "line": 19,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_discovery_endpoints.py",
+    "line": 26,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_discovery_endpoints.py",
+    "line": 33,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_drift_endpoints.py",
+    "line": 13,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_drift_endpoints.py",
+    "line": 19,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_drift_endpoints.py",
+    "line": 26,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_drift_endpoints.py",
+    "line": 33,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1661,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1667,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1685,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1696,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1703,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1721,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1730,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1739,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1755,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1762,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1775,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1784,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1793,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1800,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1807,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1823,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1832,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1841,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1848,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1855,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1872,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1881,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1888,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1897,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1913,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1920,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1938,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1947,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1956,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1963,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1974,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1987,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 1994,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 2011,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 2020,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "line": 2029,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_flow_endpoints.py",
+    "line": 22,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_flow_endpoints.py",
+    "line": 28,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_flow_endpoints.py",
+    "line": 36,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_flow_endpoints.py",
+    "line": 44,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_flow_endpoints.py",
+    "line": 52,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_flow_endpoints.py",
+    "line": 60,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 9,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 43,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 50,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 55,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 63,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 68,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 72,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 80,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 88,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 96,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 102,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 108,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 115,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 128,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 133,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 19,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 30,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 37,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_models.py",
+    "line": 121,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_probe_endpoints.py",
+    "line": 15,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 17,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 31,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 43,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 53,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 61,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 67,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 74,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 82,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 88,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 95,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 101,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 107,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 114,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/resource_endpoints.py",
+    "line": 120,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_alerts.py",
+    "line": 42,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_alerts.py",
+    "line": 48,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_audit.py",
+    "line": 16,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_audit.py",
+    "line": 25,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_catalog.py",
+    "line": 21,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_catalog.py",
+    "line": 28,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_catalog.py",
+    "line": 37,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_catalog.py",
+    "line": 41,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_catalog.py",
+    "line": 83,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_catalog.py",
+    "line": 93,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_catalog.py",
+    "line": 108,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_demo_scenario.py",
+    "line": 76,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_demo_scenario.py",
+    "line": 97,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_demo_scenario.py",
+    "line": 349,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_demo_scenario.py",
+    "line": 394,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_demo_scenario.py",
+    "line": 408,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_demo_scenario.py",
+    "line": 423,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_demo_seed.py",
+    "line": 66,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_feedback.py",
+    "line": 30,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_feedback.py",
+    "line": 58,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 26,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 35,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 45,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 57,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 64,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 71,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 76,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 102,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 125,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 154,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_global_integrations.py",
+    "line": 191,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 31,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 39,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 49,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 61,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 73,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 78,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 85,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 96,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 128,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 133,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 141,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 149,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 196,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 216,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 233,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_profiles.py",
+    "line": 294,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 373,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 892,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1044,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1122,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1136,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1191,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1207,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1244,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1300,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1418,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 1766,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2030,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2728,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3026,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3040,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3051,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3056,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3065,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 3074,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "line": 2966,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 24,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 46,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 54,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 114,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 123,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 132,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 155,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 168,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 188,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 196,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 202,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 210,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 221,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 231,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 254,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 262,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 267,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 320,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 345,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 363,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v5.py",
+    "line": 382,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 28,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 33,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 39,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 44,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 50,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 60,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 72,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 79,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 94,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 125,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 139,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 150,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 160,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 185,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 199,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 289,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 310,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 324,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 340,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 355,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 366,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 395,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 408,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 425,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_workflows.py",
+    "line": 440,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "line": 15,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 25,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 40,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 46,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 54,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 60,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 68,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 74,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 82,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 88,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 96,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 102,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 110,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 116,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 124,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 130,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 138,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 144,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 152,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/security_endpoints.py",
+    "line": 158,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/snmp_endpoints.py",
+    "line": 13,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/snmp_endpoints.py",
+    "line": 19,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/snmp_endpoints.py",
+    "line": 34,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_query_endpoints.py",
+    "line": 13,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_query_endpoints.py",
+    "line": 19,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_query_endpoints.py",
+    "line": 28,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_query_endpoints.py",
+    "line": 37,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/topology_query_endpoints.py",
+    "line": 97,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/ws_pubsub.py",
+    "line": 9,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/ws_pubsub.py",
+    "line": 17,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/ws_pubsub.py",
+    "line": 20,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/ws_pubsub.py",
+    "line": 23,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/ws_pubsub.py",
+    "line": 26,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/ws_pubsub.py",
+    "line": 32,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/generate_typecheck_baseline.py",
+    "line": 65,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/generate_typecheck_baseline.py",
+    "line": 96,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
+    "line": 46,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
+    "line": 68,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
+    "line": 110,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/load_harness.py",
+    "line": 157,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/run_validate.py",
+    "line": 97,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/validate_dependencies_yaml.py",
+    "line": 35,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/accessibility_policy.py",
+    "line": 147,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/accessibility_policy.py",
+    "line": 168,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/audit_emission.py",
+    "line": 92,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/audit_emission.py",
+    "line": 113,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_async_correctness.py",
+    "line": 147,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_async_correctness.py",
+    "line": 172,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_db_layer.py",
+    "line": 201,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_db_layer.py",
+    "line": 226,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_testing.py",
+    "line": 253,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_testing.py",
+    "line": 297,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_validation_contracts.py",
+    "line": 181,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/backend_validation_contracts.py",
+    "line": 203,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/claude_md_size_cap.py",
+    "line": 29,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/claude_md_size_cap.py",
+    "line": 50,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/contract_typed.py",
+    "line": 126,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/contract_typed.py",
+    "line": 147,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/conventions_policy.py",
+    "line": 141,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/conventions_policy.py",
+    "line": 162,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/dependency_policy.py",
+    "line": 177,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/dependency_policy.py",
+    "line": 228,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/documentation_policy.py",
+    "line": 202,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/documentation_policy.py",
+    "line": 229,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_data_layer.py",
+    "line": 182,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_data_layer.py",
+    "line": 203,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_routing.py",
+    "line": 134,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_routing.py",
+    "line": 155,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_style_system.py",
+    "line": 184,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_style_system.py",
+    "line": 205,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_testing.py",
+    "line": 196,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_testing.py",
+    "line": 221,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_ui_primitives.py",
+    "line": 142,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_ui_primitives.py",
+    "line": 163,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/output_format_conformance.py",
+    "line": 95,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/output_format_conformance.py",
+    "line": 119,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/owners_present.py",
+    "line": 30,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/owners_present.py",
+    "line": 70,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/performance_budgets.py",
+    "line": 134,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/performance_budgets.py",
+    "line": 179,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_a.py",
+    "line": 237,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_a.py",
+    "line": 260,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_b.py",
+    "line": 210,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/security_policy_b.py",
+    "line": 232,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/storage_isolation.py",
+    "line": 71,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/storage_isolation.py",
+    "line": 92,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/todo_in_prod.py",
+    "line": 82,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/todo_in_prod.py",
+    "line": 103,
+    "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useAssistantChat.ts",
+    "line": 24,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useDebounce.ts",
+    "line": 2,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useInvestigationTools.ts",
+    "line": 4,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useKeyboardShortcuts.ts",
+    "line": 16,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useNetworkChat.ts",
+    "line": 17,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/usePhaseTracker.ts",
+    "line": 2,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useStreamingMessage.ts",
+    "line": 8,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useWebSocket.ts",
+    "line": 6,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/hooks/useWebSocket.ts",
+    "line": 73,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/lib/errorReporter.ts",
+    "line": 28,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 26,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 42,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 50,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 59,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 64,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 73,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 78,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 91,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 103,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 112,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 119,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 140,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 165,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 176,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 187,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 194,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 200,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 212,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 227,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 239,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 254,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 264,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 279,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 296,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 312,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 348,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 353,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 359,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 365,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 373,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 379,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 389,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 395,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 403,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 409,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 419,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 427,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 436,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 445,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 454,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 464,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 470,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 484,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 496,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 510,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 518,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 534,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 551,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 564,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 579,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 598,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 618,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 626,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 636,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 651,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 657,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 667,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 673,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 683,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 694,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 700,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 706,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 712,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 722,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 735,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 743,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 749,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 761,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 773,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 779,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 785,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 797,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 803,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 809,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 821,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 889,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 895,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 901,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 911,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 921,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 927,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 933,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 943,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 951,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 957,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 963,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 969,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 977,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 983,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 992,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1001,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1009,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1021,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1030,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1036,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1045,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1051,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1057,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1063,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1072,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1082,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1088,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1094,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1100,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1109,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1115,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1121,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1127,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1133,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1143,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1153,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1159,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1165,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1171,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1176,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1181,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1186,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1191,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1197,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1206,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1211,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1222,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1228,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1236,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1244,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1252,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1258,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1266,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1274,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1282,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1288,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1296,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1304,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1312,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1318,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1326,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1332,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1338,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1348,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1354,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1362,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1370,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1376,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1384,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1392,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1398,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1406,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1414,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1420,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1428,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1436,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1442,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1450,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1456,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1464,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1472,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1478,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1484,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1493,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1499,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1507,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1513,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1519,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1525,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1531,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1537,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1545,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1551,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1559,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1565,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1575,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1581,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1589,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1597,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1606,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1614,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1620,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1626,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1632,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1641,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1647,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1653,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1659,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1667,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1673,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1697,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1703,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1718,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1724,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1730,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1736,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1742,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1748,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1772,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1778,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1784,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1790,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1798,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1814,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1823,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1840,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1849,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1855,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1861,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1867,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1873,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1879,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1885,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1891,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1897,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1903,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1912,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1918,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1927,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1935,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1948,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1954,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1960,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1967,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1976,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1986,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 1993,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2002,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2009,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2016,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2025,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2032,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2039,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2048,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2055,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2067,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2080,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2086,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2096,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2105,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2112,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2122,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2131,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2142,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2151,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2165,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2172,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2181,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2186,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2195,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2201,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2210,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2216,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2228,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2234,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2243,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2249,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2258,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2265,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2274,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2281,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2290,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2297,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2306,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2312,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2321,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2327,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2336,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2342,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2351,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2357,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2368,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2374,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2382,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2388,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2400,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2409,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2414,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2423,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2429,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2437,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2444,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2452,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2459,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2465,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2474,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2485,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2492,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2499,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2504,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2513,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2519,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2526,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2532,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2540,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2554,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2576,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/api.ts",
+    "line": 2615,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/catalog.ts",
+    "line": 3,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/catalog.ts",
+    "line": 10,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/catalog.ts",
+    "line": 18,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/catalog.ts",
+    "line": 27,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 6,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 12,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 22,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 32,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 39,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 46,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 53,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 67,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 77,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 89,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 96,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 102,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 115,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/profileApi.ts",
+    "line": 125,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/runs.ts",
+    "line": 4,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/runs.ts",
+    "line": 11,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/runs.ts",
+    "line": 86,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/runs.ts",
+    "line": 99,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/runs.ts",
+    "line": 109,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/runs.ts",
+    "line": 116,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/runs.ts",
+    "line": 142,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/runs.ts",
+    "line": 148,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 9,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 16,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 28,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 67,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 74,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 80,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 91,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 98,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 107,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 117,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 124,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 134,
+    "rule": "Q15.frontend-jsdoc-required"
+  },
+  {
+    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/services/workflows.ts",
+    "line": 141,
+    "rule": "Q15.frontend-jsdoc-required"
+  }
+]
