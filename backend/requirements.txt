@@ -57,6 +57,7 @@ pytest-cov>=4.1.0
 diff-cover>=8.0.0
 hypothesis>=6.92.0
 respx>=0.20.0
+slowapi>=0.1.9
 
 # Graph Database
 neo4j>=5.0.0

@@ -1,0 +1,19 @@
+# Q13 — secret scanning. Extend gitleaks default rules; don't redefine.
+# Custom allowlist captures fixture files where AKIA000... patterns are
+# intentionally fake (Q13 `gitleaks:allow` comment convention).
+
+title = "DebugDuck gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for documented test fixtures"
+paths = [
+    '''tests/harness/fixtures/.*''',
+    '''backend/tests/fixtures/.*''',
+    '''docs/.*''',
+]
+regexes = [
+    '''AKIA0{16}''',  # canonical "obviously fake" placeholder
+]
