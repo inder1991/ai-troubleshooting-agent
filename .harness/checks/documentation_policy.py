@@ -149,9 +149,15 @@ def _scan_adr_on_change(policy: dict) -> int:
             ["git", "diff", "--name-only", "HEAD"],
             cwd=REPO_ROOT, capture_output=True, text=True, timeout=10,
         )
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            cwd=REPO_ROOT, capture_output=True, text=True, timeout=10,
+        )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return 0
-    changed = [p for p in diff.stdout.splitlines() if p.strip()]
+    changed = [
+        p for p in (diff.stdout + "\n" + untracked.stdout).splitlines() if p.strip()
+    ]
     triggers = policy.get("adr_required_on_change") or []
     triggered = [p for p in changed if any(fnmatch.fnmatchcase(p, t) for t in triggers)]
     if not triggered:
@@ -200,6 +206,7 @@ def _scoped_walk_roots(policy: dict) -> list[Path]:
 
 
 def scan(roots: Iterable[Path], policy_path: Path, pretend_path: str | None) -> int:
+    """Run Q15 documentation rules against `roots`. Return 1 if any errors fired."""
     policy = _load_policy(policy_path)
     total_errors = 0
     roots_list = list(roots)
@@ -227,6 +234,7 @@ def scan(roots: Iterable[Path], policy_path: Path, pretend_path: str | None) -> 
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entrypoint: parse args, dispatch scan, return process exit code."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", type=Path, action="append")
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)

@@ -62,18 +62,31 @@ def run_lint() -> int:
     return 0
 
 
-def run_typecheck() -> int:
-    """Typecheck. Wired up in Sprint H.0b's Q19 work; skipped here if missing."""
-    return 0  # placeholder — Story H.0b.12 adds the real wiring.
+def run_typecheck(full: bool) -> int:
+    """Q19 typecheck enforcement. Heavyweight (mypy + tsc subprocesses);
+    runs only in --full mode to keep --fast under H-17's 30s budget."""
+    if not full:
+        return 0
+    script = CHECKS_DIR / "typecheck_policy.py"
+    if not script.exists():
+        return 0
+    return _run("check:typecheck_policy", [sys.executable, str(script)])
+
+
+# Skipped by run_custom_checks (the auto-glob); invoked via dedicated runners.
+DEDICATED_RUNNERS = {"typecheck_policy.py"}
 
 
 def run_custom_checks() -> int:
-    """Invoke every .harness/checks/*.py except _common.py and __init__.py."""
+    """Invoke every .harness/checks/*.py except _common.py / __init__.py and
+    DEDICATED_RUNNERS (which have their own gated invocation)."""
     if not CHECKS_DIR.is_dir():
         return 0
     overall = 0
     for script in sorted(CHECKS_DIR.glob("*.py")):
         if script.name in ("__init__.py", "_common.py"):
+            continue
+        if script.name in DEDICATED_RUNNERS:
             continue
         rc = _run(f"check:{script.stem}", [sys.executable, str(script)])
         if rc != 0:
@@ -95,6 +108,7 @@ def run_tests() -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse --fast/--full mode, dispatch lint + typecheck + checks (+ tests). Return aggregate exit code."""
     parser = argparse.ArgumentParser(description="Run harness validations.")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--fast", action="store_true", help="Inner-loop gate (< 30s).")
@@ -103,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
 
     overall = 0
     overall |= run_lint()
-    overall |= run_typecheck()
+    overall |= run_typecheck(full=args.full)
     overall |= run_custom_checks()
 
     if args.full:

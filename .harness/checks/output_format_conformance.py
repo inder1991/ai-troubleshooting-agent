@@ -104,7 +104,13 @@ def scan(target: Path) -> int:
     elif target.is_dir():
         checks = sorted(
             p for p in target.glob("*.py")
-            if p.name not in {"__init__.py", "_common.py", "output_format_conformance.py"}
+            if p.name not in {
+                "__init__.py", "_common.py",
+                "output_format_conformance.py",
+                # typecheck_policy.py spawns mypy + tsc subprocesses (~minutes);
+                # it has dedicated tests under tests/harness/checks/test_typecheck_policy.py.
+                "typecheck_policy.py",
+            }
         )
     else:
         emit("ERROR", target, "harness.target-missing",
@@ -117,6 +123,7 @@ def scan(target: Path) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entrypoint: validate H-16/H-23 output shape of every check under --target."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", type=Path, default=DEFAULT_TARGET)
     args = parser.parse_args(argv)
