@@ -53,3 +53,26 @@ def test_run_validate_emits_summary_line() -> None:
 def test_run_validate_exits_nonzero_on_check_failure(tmp_path: Path) -> None:
     """If any wrapped check exits non-zero, orchestrator exits non-zero."""
     pytest.skip("Exercised in Story 6 once claude_md_size_cap.py exists.")
+
+
+def test_run_validate_fast_under_30_seconds() -> None:
+    """H-17: fast mode total wall time < 30s on a clean repo.
+
+    On Sprint H.0a there are zero custom checks beyond the upcoming
+    claude_md_size_cap.py + owners_present.py (Story 6). This test
+    establishes the budget early; later sprints must keep it.
+    """
+    import time
+    start = time.monotonic()
+    result = subprocess.run(
+        [sys.executable, str(RUN_VALIDATE), "--fast"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    elapsed = time.monotonic() - start
+    assert elapsed < 30.0, (
+        f"validate-fast took {elapsed:.1f}s, exceeds 30s budget (H-17). "
+        f"Output: {result.stdout[-500:]}"
+    )
