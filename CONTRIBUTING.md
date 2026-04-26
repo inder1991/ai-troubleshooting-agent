@@ -55,3 +55,25 @@ preceding `test(red):` commit are rejected at code review.
      `feat(green): <story-id> — <change>`.
   3. **Refactor** — improve structure without changing behavior. Tests
      stay green. Commit: `refactor: <story-id> — <description>`.
+
+## Working with the AI harness
+
+If you're using Claude Code / Cursor / Copilot in this repo, the AI harness
+(`.harness/`) provides structured rules + truth files that improve suggestion
+quality and catch policy violations before they reach review.
+
+- See `.harness/README.md` for the full contributor's guide — what each
+  policy means, where to add a check, where to add an exemption, how to
+  interpret findings.
+- See `docs/api.md` for the curated API guide (auth, error model, rate
+  limits, CSRF).
+- Run `make validate-fast` before declaring any task done.
+- Run `make harness` after adding a new endpoint, page, model, or
+  Pydantic boundary type so the generated truth files
+  (`.harness/generated/*.json`) stay current.
+- Adding a new policy file or check requires an ADR under
+  `docs/decisions/` (Q15 enforces).
+- The harness's own self-tests (`harness_rule_coverage`,
+  `harness_fixture_pairing`, `harness_policy_schema`,
+  `output_format_conformance`) run on every commit — they catch the case
+  where a rule is on paper but not in code.
