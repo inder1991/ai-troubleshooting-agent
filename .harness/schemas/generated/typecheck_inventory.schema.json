@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["strict_paths_python", "tsc_strict", "tsc_no_unchecked_indexed_access", "mypy_baseline_size", "tsc_baseline_size"],
+  "properties": {
+    "strict_paths_python": {"type": "array", "items": {"type": "string"}},
+    "tsc_strict": {"type": "boolean"},
+    "tsc_no_unchecked_indexed_access": {"type": "boolean"},
+    "mypy_baseline_size": {"type": "integer"},
+    "tsc_baseline_size": {"type": "integer"}
+  }
+}

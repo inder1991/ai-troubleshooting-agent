@@ -33,6 +33,10 @@
       "title": "Cross-stack generators (H.2.3) \u2014 validation_inventory, dependency_inventory, performance_budgets, security_inventory"
     },
     {
+      "file": "docs/decisions/2026-04-26-introduce-h24-h25-generators.md",
+      "title": "H.2.4 + H.2.5 generators (a11y, docs, logging, errors, outbound_http, conventions)"
+    },
+    {
       "file": "docs/decisions/2026-04-26-introduce-h24-harness-fixture-pairing.md",
       "title": "Introduce H-24 harness_fixture_pairing check"
     },
@@ -3022,6 +3026,13 @@
       "has_docstring": true,
       "kind": "FunctionDef",
       "line": 68,
+      "symbol": "main"
+    },
+    {
+      "file": ".harness/generators/extract_typecheck_inventory.py",
+      "has_docstring": true,
+      "kind": "FunctionDef",
+      "line": 83,
       "symbol": "main"
     },
     {
@@ -7803,6 +7814,20 @@
       "has_docstring": true,
       "kind": "FunctionDef",
       "line": 90,
+      "symbol": "main"
+    },
+    {
+      "file": "tools/run_harness_regen.py",
+      "has_docstring": false,
+      "kind": "FunctionDef",
+      "line": 48,
+      "symbol": "visit"
+    },
+    {
+      "file": "tools/run_harness_regen.py",
+      "has_docstring": true,
+      "kind": "FunctionDef",
+      "line": 71,
       "symbol": "main"
     },
     {
