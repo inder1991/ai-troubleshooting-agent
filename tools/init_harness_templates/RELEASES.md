@@ -1,5 +1,49 @@
 # Releases
 
+## v1.2.0 — P1 hardening batch (signed)
+
+Closes the eight P1 findings from the post-v1.1.0 SDET audit
+(`docs/plans/2026-04-27-harness-sdet-audit.md`):
+
+- **B11** — `tools/init_harness.py` now copies `.gitattributes` into
+  the bootstrapped repo. Without it, Windows checkouts broke the
+  `make harness` byte-deterministic regen gate.
+- **B12** — `tools/init_harness.py` writes a `.harness-version` pin
+  on bootstrap (the resolved ref for `--from-git`, or `main` for
+  local-source). Stops `sync_harness.py` from exiting 2 on the
+  consumer's first run.
+- **B13** — every git subprocess in `tools/init_harness.py` and
+  `tools/sync_harness.py` now runs under an explicit `timeout=`
+  (30s for `ls-remote`, 120s for `clone`, 10s for `cat-file`, 15s
+  for `verify-tag`). A hung remote can no longer stall bootstrap or
+  sync indefinitely.
+- **B14** — `tools/run_validate.py` enforces `CHECK_TIMEOUT_S = 180s`
+  per check subprocess. A check that hangs (infinite loop, blocked
+  I/O) now surfaces as a synthetic `[ERROR] file=<check>
+  rule=harness.timeout` finding plus a failure-log entry, and the
+  orchestrator returns 1.
+- **B15** — `tools/sync_harness.py --trust-key <FINGERPRINT>`
+  (or `HARNESS_TRUST_KEY` env) requires the tag's signature to come
+  from a specific GPG fingerprint. Without this pin, `git verify-tag`
+  accepts any key in the consumer's keyring — a maintainer with
+  many imported keys downgrades the trust model. Documented in
+  `tools/init_harness_templates/keys.md`.
+- **B16** — new check `Q21.harness-card-version-mismatch`. Fires when
+  `HARNESS_CARD.yaml.version` doesn't match `.harness-version`
+  (stripped of leading `v`). Catches the silent drift the card
+  version had before this release.
+- **B17** — `tools/extraction/extract.sh` smoke-tests the carved
+  repo with `pytest tests/harness -q --tb=short -x` after the carve
+  commits land. Aborts with exit 4 on any self-test failure;
+  broken extractions never reach `git push`.
+- **B18** — `run_validate.run_tests` actually runs vitest (was
+  claimed by the docstring since v1.0.0 but never wired up). Gated
+  on `frontend/package.json` and `frontend/node_modules` existing
+  so Python-only consumers don't fail.
+
+19+ new tests across 8 files. The harness substrate is fully green
+under `validate-full`.
+
 ## v1.1.1 — Patch on the v1.1.0 hardening batch (signed)
 
 Closes the four P0 regressions surfaced by the post-v1.1.0 audit
