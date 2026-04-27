@@ -68,27 +68,6 @@ def _current_commit() -> str | None:
     return None
 
 
-def _rotate_failure_log() -> None:
-    """If FAILURE_LOG_PATH exceeds its size cap, rename to .1, delete any older .1."""
-    if not FAILURE_LOG_PATH.exists():
-        return
-    try:
-        if FAILURE_LOG_PATH.stat().st_size <= FAILURE_LOG_MAX_BYTES:
-            return
-    except OSError:
-        return
-    rotated = FAILURE_LOG_PATH.with_suffix(FAILURE_LOG_PATH.suffix + ".1")
-    if rotated.exists():
-        try:
-            rotated.unlink()
-        except OSError:
-            pass
-    try:
-        FAILURE_LOG_PATH.rename(rotated)
-    except OSError:
-        pass
-
-
 # B2 hardening — fcntl is POSIX-only; on Windows we fall back to no locking
 # (concurrent runs can interleave; documented limitation).
 try:
@@ -96,6 +75,50 @@ try:
     _HAVE_FCNTL = True
 except ImportError:  # pragma: no cover — Windows
     _HAVE_FCNTL = False
+
+
+def _rotate_failure_log() -> None:
+    """If FAILURE_LOG_PATH exceeds its size cap, rename to .1.
+
+    B10 (v1.1.1): the rotate path is now held under fcntl.LOCK_EX so
+    concurrent run_validate processes can't both observe size > cap
+    and double-rename onto .1, clobbering the first rotation's bytes.
+    Re-checks size under the lock — another process may have already
+    rotated between our exists() and our lock acquisition.
+
+    Windows fallback: no lock available; documented in the v1.1.0
+    release notes (B2 already had the same limitation for append).
+    """
+    if not FAILURE_LOG_PATH.exists():
+        return
+    if not _HAVE_FCNTL:
+        try:
+            if FAILURE_LOG_PATH.stat().st_size > FAILURE_LOG_MAX_BYTES:
+                rotated = FAILURE_LOG_PATH.with_suffix(FAILURE_LOG_PATH.suffix + ".1")
+                if rotated.exists():
+                    rotated.unlink()
+                FAILURE_LOG_PATH.rename(rotated)
+        except OSError:
+            pass
+        return
+    try:
+        with FAILURE_LOG_PATH.open("a+", encoding="utf-8") as fh:
+            _fcntl.flock(fh.fileno(), _fcntl.LOCK_EX)
+            try:
+                if FAILURE_LOG_PATH.stat().st_size <= FAILURE_LOG_MAX_BYTES:
+                    return
+                rotated = FAILURE_LOG_PATH.with_suffix(FAILURE_LOG_PATH.suffix + ".1")
+                if rotated.exists():
+                    try:
+                        rotated.unlink()
+                    except OSError:
+                        pass
+                FAILURE_LOG_PATH.rename(rotated)
+            finally:
+                _fcntl.flock(fh.fileno(), _fcntl.LOCK_UN)
+    except OSError:
+        # Rotation must never abort validate.
+        pass
 
 
 def _append_failure_log(rule: str, file: str, line: int, commit: str | None) -> None:
