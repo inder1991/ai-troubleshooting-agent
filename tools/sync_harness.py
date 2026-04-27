@@ -100,7 +100,7 @@ def _verify_tag(clone_dir: Path, ref: str) -> tuple[bool, str]:
     """
     cat = subprocess.run(
         ["git", "cat-file", "-t", ref],
-        cwd=clone_dir, capture_output=True, text=True,
+        cwd=clone_dir, capture_output=True, text=True, timeout=10,
     )
     obj_type = (cat.stdout or "").strip()
     if cat.returncode != 0 or obj_type != "tag":
@@ -111,7 +111,7 @@ def _verify_tag(clone_dir: Path, ref: str) -> tuple[bool, str]:
         )
     verify = subprocess.run(
         ["git", "verify-tag", ref],
-        cwd=clone_dir, capture_output=True, text=True,
+        cwd=clone_dir, capture_output=True, text=True, timeout=15,
     )
     if verify.returncode != 0:
         return False, (
@@ -148,10 +148,16 @@ def main(argv: list[str] | None = None) -> int:
     tmp = Path(tempfile.mkdtemp(prefix="ai-harness-sync-"))
     try:
         try:
+            # B13 (v1.2.0): timeout=120 on clone — hung remote can't
+            # stall sync indefinitely.
             subprocess.check_call(
                 ["git", "clone", "--depth", "1", "--branch", ref,
                  args.git_url, str(tmp)],
+                timeout=120,
             )
+        except subprocess.TimeoutExpired:
+            print("[ERROR] git clone timed out after 120s", file=sys.stderr)
+            return 2
         except subprocess.CalledProcessError as exc:
             print(f"[ERROR] git clone failed: {exc}", file=sys.stderr)
             return 2

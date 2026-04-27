@@ -152,14 +152,27 @@ def _resolve_latest_tag(git_url: str) -> str:
 
 
 def _clone_source(git_url: str, ref: str) -> Path:
-    """Shallow-clone git_url@ref into a tempdir; return that path."""
+    """Shallow-clone git_url@ref into a tempdir; return that path.
+
+    B13 (v1.2.0): timeout=120 on the clone so a hung remote (DNS
+    failure, partition, dead host) can't stall the bootstrap forever.
+    Wraps TimeoutExpired with a clear diagnostic.
+    """
     tmp = Path(tempfile.mkdtemp(prefix="ai-harness-"))
     if ref == "latest":
         ref = _resolve_latest_tag(git_url)
     print(f"[INFO] cloning {git_url}@{ref} → {tmp}")
-    subprocess.check_call(
-        ["git", "clone", "--depth", "1", "--branch", ref, git_url, str(tmp)],
-    )
+    try:
+        subprocess.check_call(
+            ["git", "clone", "--depth", "1", "--branch", ref, git_url, str(tmp)],
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise subprocess.CalledProcessError(
+            returncode=124,
+            cmd=exc.cmd,
+            output=f"git clone timed out after {exc.timeout}s",
+        ) from exc
     return tmp
 
 
