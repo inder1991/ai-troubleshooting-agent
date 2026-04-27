@@ -136,8 +136,14 @@ git -c user.email="harness@local" -c user.name="harness extraction" \
 # A broken extraction (missing file, manifest skew, non-importable check)
 # previously shipped unnoticed because extract.sh exited 0 after the carve
 # commit. Now the script aborts with exit 4 if any harness self-test fails.
+#
+# --ignore=tests/harness/fixtures: fixture .py files are violation/compliant
+# code samples consumed BY the checks (see harness_fixture_pairing.py),
+# NOT pytest tests themselves. Without this ignore, pytest discovers
+# `test_imports_openai.py` (a fixture demonstrating Q9.no-live-llm) and
+# tries to actually call anthropic.Anthropic().
 echo "[INFO] smoke-testing extracted repo (B17)"
-if ! python3 -m pytest tests/harness -q --tb=short -x; then
+if ! python3 -m pytest tests/harness -q --tb=short -x --ignore=tests/harness/fixtures; then
     echo "[ERROR] extracted repo failed its self-tests; aborting" >&2
     echo "        Inspect ${TARGET} manually before re-running." >&2
     exit 4
