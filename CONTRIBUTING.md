@@ -77,3 +77,25 @@ quality and catch policy violations before they reach review.
   `harness_fixture_pairing`, `harness_policy_schema`,
   `output_format_conformance`) run on every commit — they catch the case
   where a rule is on paper but not in code.
+
+## Working with the standalone harness
+
+The harness substrate (`.harness/checks`, `.harness/generators`,
+`tools/load_harness.py`, etc.) is **owned by the standalone repo**
+at `https://github.com/inder/ai-harness` (see `tools/extraction/README.md`
+for the extraction procedure). This repo consumes a pinned version,
+recorded in `.harness-version`.
+
+**To bump the pinned version:**
+1. `echo v1.1.0 > .harness-version`
+2. `make harness-sync`
+3. Commit the diff (`.harness/` + `tools/*.py` updates).
+
+**To propose a harness change:** open a PR against `ai-harness`, get it
+merged + tagged, then bump the pin here.
+
+**Per H-26:** never hand-edit `.harness/checks/*.py` or
+`.harness/generators/*.py` in this repo — those are upstream substrate.
+Project-specific *_policy.yaml additions and per-directory CLAUDE.md files
+remain in this repo and are preserved across `make harness-sync`
+(it explicitly keeps `.harness/baselines/` and `.harness/generated/`).

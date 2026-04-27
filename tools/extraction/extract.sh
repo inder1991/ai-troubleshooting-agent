@@ -77,10 +77,13 @@ See `docs/plans/2026-04-26-ai-harness.md` for the full design — 25 H-rules,
 19 stack-decision Q-rules, 7-sprint implementation history.
 EOF
 
+echo "[INFO] copying release notes template → ${TARGET}/RELEASES.md"
+cp "${REPO_ROOT}/tools/init_harness_templates/RELEASES.md" "${TARGET}/RELEASES.md"
+
 cd "${TARGET}"
-git add README.md
+git add README.md RELEASES.md
 git -c user.email="harness@local" -c user.name="harness extraction" \
-    commit -m "docs: standalone repo README + bootstrap quickstart"
+    commit -m "docs: standalone repo README + RELEASES.md + bootstrap quickstart"
 
 echo
 echo "[INFO] extraction complete: ${TARGET}"
