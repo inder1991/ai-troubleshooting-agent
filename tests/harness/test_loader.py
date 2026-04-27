@@ -110,16 +110,44 @@ def test_loader_default_budget_caps_output() -> None:
     )
 
 
-def test_loader_emits_truncated_pointer_when_over_budget() -> None:
-    """Point 1 — files dropped due to budget appear as `[TRUNCATED] <path>`."""
+def test_loader_emits_truncated_pointer_when_over_budget(tmp_path: Path) -> None:
+    """Point 1 — files dropped due to budget appear as `[TRUNCATED] <path>`.
+
+    Builds a synthetic mini-repo in tmp_path with a deliberately-oversized
+    generated JSON, then invokes a copy of load_harness.py rooted at that
+    tmp_path. This isolates the test from whatever the live repo happens
+    to have under .harness/generated/ — including the standalone
+    ai-harness source repo where extract.sh wipes the directory and
+    nothing exceeds the budget.
+    """
+    fake_root = tmp_path / "repo"
+    (fake_root / ".harness/generated").mkdir(parents=True)
+    (fake_root / "tools").mkdir()
+    (fake_root / "CLAUDE.md").write_text("# Synthetic root\n")
+    # 12 KB of payload — well over the 8 KB cap, so emission must
+    # truncate at least this one file.
+    big = {"payload": "x" * 12_000}
+    (fake_root / ".harness/generated/big.json").write_text(json.dumps(big))
+    # Copy the loader + its only first-party dependency into the fake
+    # tree so its REPO_ROOT (parents[1] of __file__) resolves to fake_root.
+    import shutil
+    shutil.copy2(LOADER, fake_root / "tools/load_harness.py")
+    shutil.copy2(REPO_ROOT / "tools/_common.py", fake_root / "tools/_common.py")
+    (fake_root / "tools/__init__.py").write_text("")
+
     result = subprocess.run(
-        [sys.executable, str(LOADER), "--max-bytes", "8000"],
-        cwd=REPO_ROOT, capture_output=True, text=True,
+        [sys.executable, str(fake_root / "tools/load_harness.py"),
+         "--max-bytes", "8000"],
+        cwd=fake_root, capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
     assert "[TRUNCATED]" in result.stdout, (
-        "with an 8 KB cap on a real repo, at least one generated/* JSON "
-        f"should be truncated. Got: {result.stdout[-500:]!r}"
+        "with an 8 KB cap and a 12 KB synthetic generated JSON, at "
+        f"least one [TRUNCATED] pointer should appear. Got: "
+        f"{result.stdout[-500:]!r}"
+    )
+    assert "big.json" in result.stdout, (
+        "the truncated pointer should reference the synthetic file"
     )
 
 
