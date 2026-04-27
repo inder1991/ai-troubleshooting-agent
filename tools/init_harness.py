@@ -18,11 +18,14 @@ H-25:
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+_SEMVER_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES_DIR = REPO_ROOT / "tools" / "init_harness_templates"
@@ -111,16 +114,32 @@ def _copy_skeleton(src: Path, dest: Path, force: bool) -> int:
 
 
 def _resolve_latest_tag(git_url: str) -> str:
-    """Pick highest semver-style v* tag from a remote, or fall back to 'main'."""
+    """Pick the highest semver-style v* tag from a remote, or fall back to 'main'.
+
+    B9 (v1.1.1): lexical sorted() ranks v1.10.0 below v1.2.0. Parse each
+    tag as (major, minor, patch) ints and sort numerically. Tags that
+    don't match `v\\d+\\.\\d+\\.\\d+` are skipped — pre-release or
+    branch-style refs shouldn't be auto-pinned. Adds timeout=30 to the
+    underlying ls-remote (partial B13).
+    """
     out = subprocess.check_output(
-        ["git", "ls-remote", "--tags", git_url], text=True,
+        ["git", "ls-remote", "--tags", git_url], text=True, timeout=30,
     )
-    tags = [
-        line.split("refs/tags/")[-1] for line in out.splitlines()
-        if "refs/tags/v" in line
-    ]
-    tags = [t for t in tags if not t.endswith("^{}")]
-    return sorted(tags)[-1] if tags else "main"
+    parsed: list[tuple[tuple[int, int, int], str]] = []
+    for line in out.splitlines():
+        if "refs/tags/" not in line:
+            continue
+        tag = line.split("refs/tags/")[-1]
+        if tag.endswith("^{}"):
+            continue
+        m = _SEMVER_RE.match(tag)
+        if not m:
+            continue
+        parsed.append((tuple(int(g) for g in m.groups()), tag))
+    if not parsed:
+        return "main"
+    parsed.sort()
+    return parsed[-1][1]
 
 
 def _clone_source(git_url: str, ref: str) -> Path:
