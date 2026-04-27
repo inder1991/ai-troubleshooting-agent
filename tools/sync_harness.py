@@ -32,7 +32,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_URL = "https://github.com/inder/ai-harness.git"
+DEFAULT_URL = "https://github.com/inder1991/ai-harness.git"
 
 OVERLAY_PATHS = (
     ".harness",

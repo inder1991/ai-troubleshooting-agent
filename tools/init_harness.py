@@ -26,7 +26,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES_DIR = REPO_ROOT / "tools" / "init_harness_templates"
-DEFAULT_GIT_URL = "https://github.com/inder/ai-harness.git"
+DEFAULT_GIT_URL = "https://github.com/inder1991/ai-harness.git"
 TOOL_FILES = (
     "load_harness.py",
     "run_validate.py",

@@ -82,7 +82,7 @@ quality and catch policy violations before they reach review.
 
 The harness substrate (`.harness/checks`, `.harness/generators`,
 `tools/load_harness.py`, etc.) is **owned by the standalone repo**
-at `https://github.com/inder/ai-harness` (see `tools/extraction/README.md`
+at `https://github.com/inder1991/ai-harness` (see `tools/extraction/README.md`
 for the extraction procedure). This repo consumes a pinned version,
 recorded in `.harness-version`.
 
