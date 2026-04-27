@@ -31,6 +31,18 @@ INCLUDE_ROOTS = (
     "docs/plans/2026-04-26-harness-sprint-h1d-tasks.md",
     "docs/plans/2026-04-26-harness-sprint-h2-tasks.md",
     "docs/plans/2026-04-26-harness-sprint-h3-extract-tasks.md",
+    # v1.1.0 + v1.1.1 + v1.2.0 + v1.2.1 audit + plans + closeouts.
+    # Without these, filter-repo prunes the closeout commits because
+    # they touch no manifest paths — and the publish-backfill script
+    # locates each tag's commit by `git log --grep` on the closeout
+    # message, so the prune broke commit-resolution.
+    "docs/plans/2026-04-27-harness-sdet-audit.md",
+    "docs/plans/2026-04-27-harness-v1.1.1-and-v1.2.0-plan.md",
+    "docs/plans/2026-04-27-harness-v1.1.1-closeout.md",
+    "docs/plans/2026-04-27-harness-v1.2.0-closeout.md",
+    "docs/plans/2026-04-28-harness-v1.2.1-closeout.md",
+    "docs/plans/2026-04-28-harness-rule-semantics-audit.md",
+    "docs/plans/2026-04-28-harness-v1.3.0-sprint.md",
     "docs/decisions",
     "tests/harness",
     ".claude/settings.json",
