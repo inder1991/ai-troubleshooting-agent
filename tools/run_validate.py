@@ -300,12 +300,28 @@ def run_custom_checks(full: bool) -> int:
 
 
 def run_tests() -> int:
-    """Backend pytest + frontend vitest. Only in --full mode."""
+    """Backend pytest + frontend vitest. Only in --full mode.
+
+    B18 (v1.2.0): vitest is now actually wired in (was claimed by the
+    docstring since v1.0.0 but the body only ran pytest). Gated on
+    `frontend/package.json` AND `frontend/node_modules` existing so a
+    Python-only consumer doesn't fail with "npx: vitest not found".
+    """
     overall = 0
     if (REPO_ROOT / "backend").is_dir() and _have("pytest"):
         rc = _run(
             "pytest",
             [sys.executable, "-m", "pytest", "backend/tests/", "tests/harness/", "-q"],
+        )
+        if rc != 0:
+            overall = rc
+    fe_pkg = REPO_ROOT / "frontend" / "package.json"
+    fe_nm = REPO_ROOT / "frontend" / "node_modules"
+    if fe_pkg.exists() and fe_nm.exists() and _have("npx"):
+        rc = _run(
+            "vitest",
+            ["npx", "vitest", "run", "--reporter=dot"],
+            cwd=REPO_ROOT / "frontend",
         )
         if rc != 0:
             overall = rc
