@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# B26 (v1.2.1): pipefail so a failed `head -c` in the warning preview
+# surfaces instead of silently emitting empty bytes. The hook itself
+# always exits 0 (final `exit 0` line) so loader bugs don't abort the
+# Claude Code session — this just tightens intermediate error handling.
+set -o pipefail
 # Session-start wrapper: invokes the harness loader against the repo root.
 # Stdout is consumed by Claude Code as system context per its hook contract.
 #

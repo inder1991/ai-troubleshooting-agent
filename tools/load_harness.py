@@ -51,11 +51,21 @@ from tools._common import parse_front_matter as _strip_front_matter  # noqa: E40
 DEFAULT_MAX_BYTES = 32_768  # ~8k tokens at 4 bytes/token avg
 
 
+_READ_ERRORS: list[Path] = []
+
+
 def _read_file_safe(path: Path) -> str:
-    """Read path; return empty string on OSError. Never raises."""
+    """Read path; return empty string on OSError. Never raises.
+
+    B20 (v1.2.1): record the failing path in `_READ_ERRORS` so
+    `build_context` can surface it in the `malformed_files` channel.
+    Pre-v1.2.1 a permission error or stale NFS handle silently became
+    an empty file; the AI saw "no rules apply" with no signal.
+    """
     try:
         return path.read_text()
     except OSError:
+        _READ_ERRORS.append(path)
         return ""
 
 
@@ -119,7 +129,11 @@ def collect_cross_cutting(target: Path) -> tuple[list[Path], list[Path]]:
         if isinstance(applies, str):
             applies = [applies]
         target_str = str(target).replace("\\", "/")
-        if any(fnmatch.fnmatch(target_str, glob) for glob in applies):
+        # B24 (v1.2.1): fnmatch.fnmatch follows OS case-sensitivity
+        # (insensitive on macOS, sensitive on Linux per Python docs).
+        # fnmatchcase is always case-sensitive, so consumer/CI matches
+        # the same set of files regardless of platform.
+        if any(fnmatch.fnmatchcase(target_str, glob) for glob in applies):
             matched.append(path)
     return matched, malformed
 
@@ -134,6 +148,7 @@ def collect_policies() -> list[Path]:
 
 def build_context(target: Path | None) -> dict[str, Any]:
     """Assemble the full context block. target=None → global mode (no per-file walk)."""
+    _READ_ERRORS.clear()
     root_text = load_root()
     directory_files = collect_directory_rules(target) if target else []
     generated = load_generated()
@@ -148,16 +163,26 @@ def build_context(target: Path | None) -> dict[str, Any]:
         )
         malformed = []
 
+    # Read everything BEFORE building the malformed list so OSError reads
+    # surface alongside the front-matter parse failures (B20).
+    directory_text = [_read_file_safe(p) for p in directory_files]
+    cross_cutting_text = [_read_file_safe(p) for p in cross_cutting_files]
+
+    malformed_paths = list(malformed) + list(_READ_ERRORS)
+
     return {
         "target": str(target) if target else "<global>",
         "root": root_text,
         "directory_rules_files": [str(p.relative_to(REPO_ROOT)) for p in directory_files],
-        "directory_rules": [_read_file_safe(p) for p in directory_files],
+        "directory_rules": directory_text,
         "cross_cutting_files": [str(p.relative_to(REPO_ROOT)) for p in cross_cutting_files],
-        "cross_cutting": [_read_file_safe(p) for p in cross_cutting_files],
+        "cross_cutting": cross_cutting_text,
         "policy_yaml_files": [str(p.relative_to(REPO_ROOT)) for p in collect_policies()],
         "generated": generated,
-        "malformed_files": [str(p.relative_to(REPO_ROOT)) for p in malformed],
+        "malformed_files": [
+            str(p.relative_to(REPO_ROOT)) if p.is_absolute() else str(p)
+            for p in malformed_paths
+        ],
         "precedence_order": [
             "root", "policies", "cross_cutting", "generated", "directory_rules",
         ],

@@ -64,8 +64,18 @@ mv "${MIRROR}" "${TARGET}"
 # `make harness` + `make harness-baseline-refresh`. Drop them now so the
 # extracted repo ships with empty generated/ + baselines/ (just the README).
 echo "[INFO] cleaning consumer-specific artifacts from ${TARGET}"
-find "${TARGET}/.harness/generated" -name '*.json' -type f -delete 2>/dev/null || true
-find "${TARGET}/.harness/baselines" -name '*.json' -type f -delete 2>/dev/null || true
+# B21 (v1.2.1): if find fails (permissions, missing dir), surface a WARN
+# instead of swallowing silently. Still non-fatal — the directory may not
+# exist on a fresh extraction, which is fine.
+for _dir in "${TARGET}/.harness/generated" "${TARGET}/.harness/baselines"; do
+    if [[ -d "${_dir}" ]]; then
+        if ! find "${_dir}" -name '*.json' -type f -delete 2>"${_dir}.find-err"; then
+            echo "[WARN] find -delete failed under ${_dir}; see ${_dir}.find-err" >&2
+        else
+            rm -f "${_dir}.find-err"
+        fi
+    fi
+done
 # Make sure the generated/ README survives (it warns "DO NOT EDIT").
 if [[ ! -f "${TARGET}/.harness/generated/README.md" && -f "${REPO_ROOT}/.harness/generated/README.md" ]]; then
     mkdir -p "${TARGET}/.harness/generated"

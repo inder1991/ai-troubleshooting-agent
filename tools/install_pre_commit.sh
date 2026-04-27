@@ -22,9 +22,16 @@ $MARKER
 # Runs make validate-fast before every commit. Bypass with
 #   git commit --no-verify
 # in the rare cases where you need to commit despite a violation.
+#
+# B23 (v1.2.1): falls back to \`python3 tools/run_validate.py --fast\`
+# when make isn't on PATH (Windows, minimal Docker images).
 
 set -e
-exec make validate-fast
+if command -v make >/dev/null 2>&1; then
+    exec make validate-fast
+else
+    exec python3 tools/run_validate.py --fast
+fi
 "
 
 FORCE=0

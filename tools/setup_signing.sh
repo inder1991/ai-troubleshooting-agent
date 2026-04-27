@@ -35,20 +35,26 @@ SIGNING_EMAIL="${SIGNING_EMAIL:-ai-harness@local}"
 
 # B4 — default scope is --local. Override with --global, --force overwrites
 # existing values without prompting.
+# B22 (v1.2.1) — --protect prompts GPG for a passphrase during key
+# generation instead of using %no-protection. Recommended for human
+# signers; the default (no --protect) keeps CI runners working without
+# interactive input.
 SCOPE="--local"
 FORCE=0
+PROTECT=0
 for arg in "$@"; do
     case "${arg}" in
-        --global) SCOPE="--global" ;;
-        --local)  SCOPE="--local" ;;
-        --force)  FORCE=1 ;;
+        --global)  SCOPE="--global" ;;
+        --local)   SCOPE="--local" ;;
+        --force)   FORCE=1 ;;
+        --protect) PROTECT=1 ;;
         --help|-h)
             sed -n '1,30p' "$0"
             exit 0
             ;;
         *)
             echo "[ERROR] unknown flag: ${arg}" >&2
-            echo "Usage: $0 [--local|--global] [--force]" >&2
+            echo "Usage: $0 [--local|--global] [--force] [--protect]" >&2
             exit 2
             ;;
     esac
@@ -84,7 +90,24 @@ else
     echo "[INFO] generating new Ed25519 signing key for ${SIGNING_NAME} <${SIGNING_EMAIL}>"
     BATCH_FILE="$(mktemp -t gpg-batch.XXXXXX)"
     trap 'rm -f "${BATCH_FILE}"' EXIT
-    cat > "${BATCH_FILE}" <<EOF
+    if [[ "${PROTECT}" -eq 1 ]]; then
+        # Human signer mode: GPG will prompt for a passphrase
+        # interactively. Drop %no-protection AND --batch so pinentry
+        # works.
+        cat > "${BATCH_FILE}" <<EOF
+Key-Type: eddsa
+Key-Curve: ed25519
+Key-Usage: sign
+Name-Real: ${SIGNING_NAME}
+Name-Email: ${SIGNING_EMAIL}
+Expire-Date: 2y
+%commit
+EOF
+        gpg --gen-key "${BATCH_FILE}"
+    else
+        # Default (CI / unattended) mode: passphrase-less so automated
+        # tag signing works without prompting. Documented trade-off.
+        cat > "${BATCH_FILE}" <<EOF
 %no-protection
 Key-Type: eddsa
 Key-Curve: ed25519
@@ -94,7 +117,8 @@ Name-Email: ${SIGNING_EMAIL}
 Expire-Date: 2y
 %commit
 EOF
-    gpg --batch --gen-key "${BATCH_FILE}"
+        gpg --batch --gen-key "${BATCH_FILE}"
+    fi
     KEYID="$(gpg --list-secret-keys --keyid-format=long --with-colons \
         | awk -F: '$1=="sec" {print $5; exit}')"
     echo "[INFO] generated key: ${KEYID}"
