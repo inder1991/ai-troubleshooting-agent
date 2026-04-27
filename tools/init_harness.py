@@ -241,6 +241,21 @@ def main(argv: list[str] | None = None) -> int:
 
     written = _copy_skeleton(src_repo, args.target, args.force)
 
+    # B12 (v1.2.0) — write a .harness-version pin so the consumer's
+    # next sync_harness.py has something to read. --from-git pins to
+    # the resolved ref; local-source bootstrap pins to "main" so the
+    # first sync lands on upstream tip (consumer can pin to a tag with
+    # `python3 tools/sync_harness.py --ref vX.Y.Z`).
+    pin_path = args.target / ".harness-version"
+    if not pin_path.exists() or args.force:
+        if args.from_git:
+            ref = args.from_git
+            if ref == "latest":
+                ref = _resolve_latest_tag(args.git_url)
+            pin_path.write_text(ref + "\n", encoding="utf-8")
+        else:
+            pin_path.write_text("main\n", encoding="utf-8")
+
     print(f"[INFO] bootstrap complete: {written} skeleton files + 4 root templates")
     print("Next steps:")
     print(f"  1. cd {args.target}")
