@@ -48,6 +48,20 @@ EXCLUDE_TOKENS = (
     ".pytest_cache",
     "/.harness/baselines/",
     "/.harness/generated/",
+    # tests/harness/configs/ — every file under here asserts DebugDuck-specific
+    # tooling/config (alembic, vitest thresholds, gitleaks, observability tree,
+    # specific deps, etc.). The standalone harness consumer wires up its own
+    # tooling; these tests would all fail in any other repo.
+    "/tests/harness/configs/",
+)
+
+# Explicit per-file excludes (in addition to EXCLUDE_TOKENS).
+# Use full project-relative paths so the exclusion is unambiguous.
+EXCLUDE_FILES = (
+    # DebugDuck hardcodes paths to backend/, backend/src/learning/, frontend/
+    # and asserts each has a CLAUDE.md. Replaced in the standalone repo by
+    # the generic test_root_claude_md.py.
+    "tests/harness/test_directory_claude_mds.py",
 )
 
 
@@ -59,6 +73,8 @@ def collect() -> list[str]:
         if not path.exists():
             continue
         if path.is_file():
+            if entry in EXCLUDE_FILES:
+                continue
             out.add(entry)
             continue
         for f in path.rglob("*"):
@@ -67,7 +83,10 @@ def collect() -> list[str]:
             f_str = str(f)
             if any(tok in f_str for tok in EXCLUDE_TOKENS):
                 continue
-            out.add(str(f.relative_to(REPO_ROOT)))
+            rel = str(f.relative_to(REPO_ROOT))
+            if rel in EXCLUDE_FILES:
+                continue
+            out.add(rel)
     return sorted(out)
 
 
