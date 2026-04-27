@@ -36,6 +36,7 @@ H-25:
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -86,17 +87,24 @@ def _overlay_file(src: Path, dst: Path) -> None:
     shutil.copy2(src, dst)
 
 
-def _verify_tag(clone_dir: Path, ref: str) -> tuple[bool, str]:
+def _verify_tag(
+    clone_dir: Path, ref: str, trust_fingerprint: str | None = None,
+) -> tuple[bool, str]:
     """Verify `ref` is an annotated, signed tag with a trusted signature.
 
-    Returns (ok, message). Two checks:
+    Returns (ok, message). Three checks:
       1. ref points at a tag object (not a branch / lightweight tag /
          arbitrary commit).
       2. `git verify-tag` succeeds — i.e. the tag is GPG-signed and the
          signing key is in the consumer's keyring.
+      3. B15 (v1.2.0): if `trust_fingerprint` is supplied, the
+         signature's VALIDSIG fingerprint must match it. Without this
+         pin, git verify-tag accepts ANY key in the keyring — an
+         attacker who controls any of those keys + write access to
+         upstream can ship overlay code.
 
-    Both checks happen against the cloned tempdir (which has the tag
-    fetched as part of --branch <ref>).
+    Both git checks happen against the cloned tempdir (which has the
+    tag fetched as part of --branch <ref>).
     """
     cat = subprocess.run(
         ["git", "cat-file", "-t", ref],
@@ -120,6 +128,27 @@ def _verify_tag(clone_dir: Path, ref: str) -> tuple[bool, str]:
             "(`gpg --recv-keys <KEYID>`) or re-run with --no-verify-tag "
             "(NOT recommended for production)."
         )
+    if trust_fingerprint:
+        # `git verify-tag` writes the signature status on stderr. With
+        # GPG's --status-fd-style output, lines like:
+        #   [GNUPG:] VALIDSIG <FPR> <date> <ts> ... <FPR>
+        # carry the fingerprint of the signing key. Pull the first
+        # VALIDSIG line and compare.
+        actual_fpr: str | None = None
+        for line in (verify.stderr or "").splitlines():
+            if "VALIDSIG" in line:
+                parts = line.split()
+                idx = parts.index("VALIDSIG") if "VALIDSIG" in parts else -1
+                if idx >= 0 and idx + 1 < len(parts):
+                    actual_fpr = parts[idx + 1].upper()
+                    break
+        expected = trust_fingerprint.upper()
+        if actual_fpr != expected:
+            return False, (
+                f"signature is valid but fingerprint {actual_fpr!r} did not match "
+                f"--trust-key {expected!r}. Either update --trust-key / "
+                f"HARNESS_TRUST_KEY or re-import the correct upstream signer."
+            )
     return True, (verify.stderr or verify.stdout or "").strip()
 
 
@@ -133,6 +162,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-verify-tag", action="store_true",
                         help="Skip GPG signature verification of the tag. "
                              "DANGEROUS — only use for bootstraps without GPG configured.")
+    parser.add_argument("--trust-key",
+                        default=os.environ.get("HARNESS_TRUST_KEY"),
+                        help="Require the tag's signature to come from this "
+                             "GPG fingerprint. Without this pin, git verify-tag "
+                             "accepts any key in the consumer keyring. Defaults "
+                             "to the HARNESS_TRUST_KEY env var.")
     args = parser.parse_args(argv)
 
     if not shutil.which("git"):
@@ -170,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
         else:
-            ok, message = _verify_tag(tmp, ref)
+            ok, message = _verify_tag(tmp, ref, trust_fingerprint=args.trust_key)
             if not ok:
                 print(f"[ERROR] tag verification failed: {message}", file=sys.stderr)
                 return 3

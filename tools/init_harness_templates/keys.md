@@ -43,6 +43,28 @@ To verify a tag manually:
 git -C <local-clone-of-ai-harness> verify-tag v1.0.2
 ```
 
+## Pinning the trust key (B15 — v1.2.0)
+
+`git verify-tag` accepts ANY key in the consumer's local keyring, so a
+maintainer who has imported many keys downgrades the trust model to
+"any of those keys + write access to upstream = ship overlay code."
+
+Since v1.2.0, `tools/sync_harness.py` accepts a `--trust-key
+<FINGERPRINT>` flag (or `HARNESS_TRUST_KEY` env var) that requires the
+tag's signature to come from the named fingerprint:
+
+```bash
+# One-shot pin (recommended for CI):
+python3 tools/sync_harness.py --trust-key 73A7AF8F04F40EC9
+
+# Repo-wide pin via env (e.g. set in your make harness-sync recipe):
+HARNESS_TRUST_KEY=73A7AF8F04F40EC9 python3 tools/sync_harness.py
+```
+
+Use the **long ID** (`73A7AF8F04F40EC9`) or full fingerprint
+(`B73C1FBA35B8E7990EC553B173A7AF8F04F40EC9`); the comparison is
+case-insensitive and matches whatever GPG emits in its `VALIDSIG` line.
+
 ## Revoked
 
 (none yet)
