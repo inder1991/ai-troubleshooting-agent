@@ -39,7 +39,7 @@ fi
 # 2. ensure git-filter-repo is on PATH (the venv has it)
 export PATH="${REPO_ROOT}/backend/venv/bin:${PATH}"
 
-# 3. re-extract
+# 3. re-extract (extract.sh now regenerates the manifest itself)
 echo "[INFO] re-extracting from ${REPO_ROOT}"
 bash "${REPO_ROOT}/tools/extraction/extract.sh"
 
@@ -55,7 +55,7 @@ git push --force origin main
 TAG_MSG=$(cat <<EOF
 ai-harness ${VERSION} — signed release
 
-Re-cut after upstream changes; this tag is GPG-signed so consumers'
+Re-cut after upstream changes; this tag is GPG-signed so the consumer
 sync_harness.py verify-tag gate accepts it without --no-verify-tag.
 
 See RELEASES.md for the full change list.

@@ -35,6 +35,12 @@ if ! command -v git-filter-repo >/dev/null 2>&1; then
     exit 2
 fi
 
+# Always regenerate the manifest so any newly-added file (e.g.
+# .github/workflows/validate.yml landing between releases) gets picked
+# up. Without this, the carve silently drops new substrate files.
+echo "[INFO] regenerating manifest"
+python3 "${REPO_ROOT}/tools/extraction/build_manifest.py"
+
 if [[ ! -f "${MANIFEST}" ]]; then
     echo "[ERROR] manifest not found at ${MANIFEST}" >&2
     echo "        Run: python3 tools/extraction/build_manifest.py" >&2

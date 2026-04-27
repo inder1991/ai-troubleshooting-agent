@@ -1,5 +1,8 @@
 .claude/settings.json
 .cursorrules
+.gitattributes
+.github/workflows/validate.yml
+.harness/HARNESS_CARD.yaml
 .harness/README.md
 .harness/accessibility_policy.yaml
 .harness/baselines/_TICKETS.md
@@ -64,6 +67,7 @@
 .harness/logging_policy.yaml
 .harness/performance_budgets.yaml
 .harness/rule_coverage_exemptions.yaml
+.harness/schemas/HARNESS_CARD.schema.json
 .harness/schemas/_README.md
 .harness/schemas/accessibility_policy.schema.json
 .harness/schemas/dependencies.schema.json
@@ -93,8 +97,10 @@
 .harness/schemas/performance_budgets.schema.json
 .harness/schemas/rule_coverage_exemptions.schema.json
 .harness/schemas/security_policy.schema.json
+.harness/schemas/spine_paths.schema.json
 .harness/schemas/typecheck_policy.schema.json
 .harness/security_policy.yaml
+.harness/spine_paths.yaml
 .harness/typecheck_policy.yaml
 AGENTS.md
 CLAUDE.md
@@ -116,8 +122,13 @@ docs/decisions/2026-04-26-introduce-q15-documentation-policy.md
 docs/decisions/2026-04-26-introduce-q16-logging-policy.md
 docs/decisions/2026-04-26-introduce-q17-error-handling-policy.md
 docs/decisions/2026-04-26-introduce-q19-typecheck-policy.md
+docs/decisions/2026-04-27-load-harness-budget-cap.md
+docs/decisions/2026-04-27-point-5-gpg-signing.md
 docs/decisions/2026-04-27-points-2-and-4.md
 docs/decisions/2026-04-27-sync-harness-tag-verification.md
+docs/decisions/2026-04-27-tier-2-cleanup.md
+docs/decisions/2026-04-27-tier-2-completion.md
+docs/decisions/2026-04-27-v1-0-4-batch.md
 docs/decisions/_TEMPLATE.md
 docs/plans/2026-04-26-ai-harness.md
 docs/plans/2026-04-26-harness-sprint-h0a-tasks.md
@@ -334,6 +345,7 @@ tests/harness/generators/test_h22_backend_generators.py
 tests/harness/generators/test_h23_crossstack_generators.py
 tests/harness/generators/test_h24_h25_generators.py
 tests/harness/generators/test_run_harness_regen.py
+tests/harness/test_failure_log.py
 tests/harness/test_init_harness.py
 tests/harness/test_loader.py
 tests/harness/test_pre_commit_install.py
@@ -354,10 +366,13 @@ tools/init_harness.py
 tools/init_harness_templates/CLAUDE.md.tmpl
 tools/init_harness_templates/Makefile.tmpl
 tools/init_harness_templates/RELEASES.md
+tools/init_harness_templates/keys.md
 tools/install_pre_commit.sh
 tools/load_harness.py
 tools/refresh_baselines.py
 tools/run_harness_regen.py
 tools/run_validate.py
+tools/setup_signing.sh
+tools/sign_release.sh
 tools/sync_harness.py
 tools/validate_dependencies_yaml.py
