@@ -38,6 +38,12 @@ CHECKS_DIR = REPO_ROOT / ".harness/checks"
 FAILURE_LOG_PATH = REPO_ROOT / ".harness" / ".failure-log.jsonl"
 FAILURE_LOG_MAX_BYTES = 10 * 1024 * 1024  # 10 MB rotation threshold
 
+# B14 (v1.2.0) — wall budget per check subprocess. Matches
+# refresh_baselines._refresh_one's timeout. A check that hangs (infinite
+# loop, blocked I/O, runaway recursion) gets killed and surfaces as a
+# synthetic harness.timeout finding.
+CHECK_TIMEOUT_S = 180
+
 # B5 hardening — import the shared regex from _common so we never drift.
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 from _common import ERROR_LINE_PATTERN as ERROR_LINE_RE  # noqa: E402
@@ -167,7 +173,32 @@ def _run(label: str, cmd: Sequence[str], cwd: Path = REPO_ROOT) -> int:
     if is_check:
         # Capture stdout to parse for errors; re-print verbatim so the user
         # sees the same output they would have without the failure log.
-        result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+        try:
+            result = subprocess.run(
+                cmd, cwd=cwd, capture_output=True, text=True,
+                timeout=CHECK_TIMEOUT_S,
+            )
+        except subprocess.TimeoutExpired:
+            # B14 (v1.2.0): a check exceeded its wall budget. Emit a
+            # synthetic H-16 [ERROR] line + failure-log entry, return 1.
+            elapsed = time.monotonic() - start
+            check_name = label.removeprefix("check:")
+            emit_line = (
+                f'[ERROR] file={check_name} rule=harness.timeout '
+                f'message="check exceeded {CHECK_TIMEOUT_S}s wall budget" '
+                f'suggestion="profile the check or split its scope"\n'
+            )
+            sys.stdout.write(emit_line)
+            sys.stdout.flush()
+            commit = _current_commit()
+            _append_failure_log(
+                rule="harness.timeout",
+                file=check_name,
+                line=0,
+                commit=commit,
+            )
+            print(f"[VALIDATE] {label} TIMED OUT after {elapsed:.1f}s")
+            return 1
         if result.stdout:
             sys.stdout.write(result.stdout)
             sys.stdout.flush()
@@ -185,7 +216,12 @@ def _run(label: str, cmd: Sequence[str], cwd: Path = REPO_ROOT) -> int:
                     commit=commit,
                 )
     else:
-        result = subprocess.run(cmd, cwd=cwd)
+        try:
+            result = subprocess.run(cmd, cwd=cwd, timeout=CHECK_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            elapsed = time.monotonic() - start
+            print(f"[VALIDATE] {label} TIMED OUT after {elapsed:.1f}s")
+            return 1
     elapsed = time.monotonic() - start
     print(f"[VALIDATE] {label} exited {result.returncode} ({elapsed:.1f}s)")
     return result.returncode
