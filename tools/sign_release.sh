@@ -30,9 +30,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="/tmp/ai-harness"
 REMOTE_URL="${HARNESS_REMOTE_URL:-https://github.com/inder1991/ai-harness.git}"
 
-# 1. signing key sanity check
-if ! git config --global user.signingkey >/dev/null 2>&1; then
+# 1. signing key sanity check.
+# B7 (v1.1.1): use git's standard local→global→system resolution. v1.1.0's B4
+# made setup_signing.sh default to --local, so probing --global only would
+# falsely refuse on a clean install.
+if ! git config user.signingkey >/dev/null 2>&1; then
     echo "[ERROR] git user.signingkey not set; run tools/setup_signing.sh first" >&2
+    echo "        (default scope is --local; pass --global if you want it system-wide)" >&2
     exit 2
 fi
 
