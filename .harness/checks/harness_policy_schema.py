@@ -42,6 +42,7 @@ POLICY_YAML_NAMES = {
     "error_handling_policy.yaml": "error_handling_policy",
     "rule_coverage_exemptions.yaml": "rule_coverage_exemptions",
     "typecheck_policy.yaml": "typecheck_policy",
+    "spine_paths.yaml": "spine_paths",
 }
 
 

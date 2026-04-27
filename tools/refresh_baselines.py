@@ -42,13 +42,37 @@ LINE_RE = re.compile(
 )
 
 
+def _read_existing_count(out_path: Path) -> int:
+    """Return the number of entries in the existing baseline, or 0 if missing/unparseable."""
+    if not out_path.exists():
+        return 0
+    try:
+        data = json.loads(out_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return 0
+    return len(data) if isinstance(data, list) else 0
+
+
 def _refresh_one(check: Path) -> int:
-    """Run check fresh (no baseline filter), parse ERROR lines, write baseline."""
+    """Run check fresh (no baseline filter), parse ERROR lines, write baseline.
+
+    Atomicity (#13): we always write to a sibling .new file first, then
+    atomically rename onto the canonical baseline. A mid-run crash leaves
+    the previous baseline intact instead of a half-written file.
+
+    Growth warning (#12): if the new baseline has MORE entries than the old
+    one, emit a [WARN] rather than silently widening. Q19 only catches growth
+    in mypy/tsc baselines via git-diff; this catches every per-rule baseline.
+    """
     out_path = BASELINES_DIR / f"{check.stem}_baseline.json"
-    # Backup existing baseline so the check sees no filter for this run.
+    new_path = out_path.with_suffix(out_path.suffix + ".new")
     backup = out_path.with_suffix(out_path.suffix + ".bak")
+    old_count = _read_existing_count(out_path)
+
+    # Move existing baseline to .bak so the check sees no filter for this run.
     if out_path.exists():
         out_path.rename(backup)
+
     try:
         result = subprocess.run(
             [sys.executable, str(check)],
@@ -77,13 +101,29 @@ def _refresh_one(check: Path) -> int:
 
     findings.sort(key=lambda e: (e["file"], e["line"], e["rule"]))
     BASELINES_DIR.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(
+
+    # #13 — atomic write: stage in .new, then rename onto out_path.
+    new_path.write_text(
         json.dumps(findings, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    new_path.replace(out_path)
     if backup.exists():
         backup.unlink()
-    print(f"[INFO] {out_path.relative_to(REPO_ROOT)}: {len(findings)} entries")
+
+    # #12 — growth warning. Skip if old baseline didn't exist (first-time
+    # snapshot is by definition growth and shouldn't warn).
+    new_count = len(findings)
+    if old_count > 0 and new_count > old_count:
+        delta = new_count - old_count
+        print(
+            f"[WARN] {out_path.relative_to(REPO_ROOT)}: baseline grew "
+            f"{old_count} → {new_count} (+{delta}). Investigate before committing — "
+            f"a check bug can silently widen baselines.",
+            file=sys.stderr,
+        )
+
+    print(f"[INFO] {out_path.relative_to(REPO_ROOT)}: {new_count} entries")
     return 0
 
 

@@ -2,10 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Q16 logging policy",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
+  "required": ["spine_paths", "logger_attr_names", "secret_log_patterns"],
   "properties": {
-    "spine_paths": {"type": "array", "items": {"type": "string"}},
-    "logger_attr_names": {"type": "array", "items": {"type": "string"}},
-    "secret_log_patterns": {"type": "array", "items": {"type": "string"}}
+    "spine_paths": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "logger_attr_names": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-z_]+$"},
+      "minItems": 1
+    },
+    "secret_log_patterns": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
   }
 }

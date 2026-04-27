@@ -52,6 +52,18 @@ def _load_exemptions(path: Path) -> set[str]:
     return out
 
 
+FENCED_CODE_BLOCK_RE = re.compile(r'```.*?```', re.DOTALL)
+INLINE_CODE_RE = re.compile(r'`[^`\n]+`')
+
+
+def _strip_code_blocks(markdown: str) -> str:
+    """Remove fenced ``` blocks and inline `code` spans before rule-reference
+    scanning. Catches H-N / Q<N> tokens that appear inside example commit
+    messages, sample yaml, etc., which are not real rule references."""
+    no_fenced = FENCED_CODE_BLOCK_RE.sub("", markdown)
+    return INLINE_CODE_RE.sub("", no_fenced)
+
+
 def _referenced_rules(plan_paths: Iterable[Path]) -> set[str]:
     refs: set[str] = set()
     for path in plan_paths:
@@ -63,7 +75,7 @@ def _referenced_rules(plan_paths: Iterable[Path]) -> set[str]:
             emit("WARN", path, "harness.unparseable",
                  f"could not read {path.name}", "fix file", line=1)
             continue
-        refs.update(RULE_REF_RE.findall(text))
+        refs.update(RULE_REF_RE.findall(_strip_code_blocks(text)))
     return refs
 
 

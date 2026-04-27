@@ -2,10 +2,20 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Q15 documentation policy",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
+  "required": ["spine_python_paths", "frontend_jsdoc_paths", "adr_required_on_change"],
   "properties": {
-    "spine_python_paths": {"type": "array", "items": {"type": "string"}},
-    "frontend_jsdoc_paths": {"type": "array", "items": {"type": "string"}},
-    "adr_required_on_change": {"type": "array", "items": {"type": "string"}}
+    "spine_python_paths": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "frontend_jsdoc_paths": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "adr_required_on_change": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
   }
 }

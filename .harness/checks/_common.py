@@ -1,5 +1,11 @@
 """Shared helpers for .harness/checks/ scripts.
 
+Spine paths (#10): checks should resolve their default scan roots via
+`spine_paths(role, fallback)` instead of hardcoding `REPO_ROOT / "backend"`.
+This lets a consumer override paths via `.harness/spine_paths.yaml` without
+forking the check. The fallback is the previous hardcoded value, kept for
+backward compat with consumers that don't yet ship spine_paths.yaml.
+
 Per H-16 / H-23, every check emits structured one-line records:
 
     [SEVERITY] file=<path>:<line> rule=<rule-id> message="..." suggestion="..."
@@ -90,3 +96,43 @@ def walk_files(
             if any(part in skip_dirs for part in path.parts):
                 continue
             yield path
+
+
+_SPINE_PATHS_CACHE: dict | None = None
+
+
+def _load_spine_paths() -> dict:
+    """Read .harness/spine_paths.yaml once per process; cache the result."""
+    global _SPINE_PATHS_CACHE
+    if _SPINE_PATHS_CACHE is not None:
+        return _SPINE_PATHS_CACHE
+    spine_yaml = REPO_ROOT / ".harness" / "spine_paths.yaml"
+    if not spine_yaml.exists():
+        _SPINE_PATHS_CACHE = {}
+        return _SPINE_PATHS_CACHE
+    try:
+        import yaml  # local import — kept off the top-level so checks
+                     # without a yaml dep aren't penalized
+        data = yaml.safe_load(spine_yaml.read_text(encoding="utf-8")) or {}
+    except Exception:  # noqa: BLE001 — best-effort; missing yaml lib falls through
+        data = {}
+    _SPINE_PATHS_CACHE = data
+    return data
+
+
+def spine_paths(role: str, fallback: tuple[str, ...]) -> tuple[Path, ...]:
+    """Resolve the consumer's spine paths for `role`.
+
+    Reads `.harness/spine_paths.yaml`; if `role` is declared there,
+    returns those paths (relative resolution against REPO_ROOT). Otherwise
+    returns `fallback` (which is the historical hardcoded default —
+    typically `("backend/src",)` or similar). Always returns a tuple of
+    Path objects, regardless of whether each path exists on disk.
+
+    Example:
+        DEFAULT_ROOTS = spine_paths("backend_api", ("backend/src/api",))
+    """
+    data = _load_spine_paths()
+    raw = data.get(role) if isinstance(data, dict) else None
+    chosen = raw if isinstance(raw, list) and raw else list(fallback)
+    return tuple(REPO_ROOT / p for p in chosen)

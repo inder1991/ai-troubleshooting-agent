@@ -141,6 +141,33 @@ def _has_csrf_dep(fn) -> bool:
     return False
 
 
+def _module_has_csrf_middleware(tree: ast.AST) -> bool:
+    """Detect app-level CSRF middleware so per-route CsrfProtect dep isn't
+    required when the FastAPI app already has CSRF enforced globally.
+
+    Catches:
+      app.add_middleware(CSRFMiddleware, ...)
+      app.add_middleware(SomethingCsrfMiddleware, ...)
+      @app.middleware  decorator on a func whose body references csrf
+      from fastapi_csrf_protect import CsrfProtect → assume init elsewhere
+    """
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "add_middleware"
+            and node.args
+        ):
+            first = node.args[0]
+            name = (
+                first.id if isinstance(first, ast.Name)
+                else (first.attr if isinstance(first, ast.Attribute) else "")
+            )
+            if "csrf" in name.lower():
+                return True
+    return False
+
+
 def _exempt(verb: str, path: str, exempt_list: list[str]) -> bool:
     key = f"{verb.upper()}:{path}"
     for entry in exempt_list:
@@ -166,6 +193,9 @@ def _scan_file(path: Path, virtual: str, policy: dict) -> int:
     auth_dec_names = set(policy.get("auth_decorator_names") or [])
     rate_limit_exempt = list(policy.get("rate_limit_exempt") or [])
     csrf_exempt = list(policy.get("csrf_exempt") or [])
+    # If this module installs CSRF middleware globally, skip the per-route
+    # CsrfProtect dependency check (the middleware enforces it for every route).
+    has_global_csrf = _module_has_csrf_middleware(tree)
     errors = 0
 
     for node in ast.walk(tree):
@@ -191,7 +221,11 @@ def _scan_file(path: Path, virtual: str, policy: dict) -> int:
                          'add `@limiter.limit("<n>/minute")` or list in security_policy.yaml.rate_limit_exempt',
                          line):
                     errors += 1
-            if not _has_csrf_dep(node) and not _exempt(verb, route_path, csrf_exempt):
+            if (
+                not has_global_csrf
+                and not _has_csrf_dep(node)
+                and not _exempt(verb, route_path, csrf_exempt)
+            ):
                 if _emit(path, "Q13.route-needs-csrf",
                          f"{verb.upper()} {route_path} missing CsrfProtect dependency",
                          "add `csrf_protect: CsrfProtect = Depends()` or list under csrf_exempt",
@@ -208,6 +242,8 @@ def _walk_python(root: Path) -> Iterable[Path]:
 
 
 def scan(roots: Iterable[Path], policy_path: Path, pretend_path: str | None) -> int:
+    """Run Q13.B (auth + rate-limit + CSRF) on each FastAPI route under `roots`.
+    Return 1 if any errors fired."""
     policy = _load_policy(policy_path)
     total_errors = 0
     for root in roots:
@@ -230,6 +266,7 @@ def scan(roots: Iterable[Path], policy_path: Path, pretend_path: str | None) -> 
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entrypoint: dispatch scan, return process exit code."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", type=Path, action="append")
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)

@@ -23,9 +23,11 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline  # noqa: E402
+from _common import emit, load_baseline, spine_paths  # noqa: E402
 
-DEFAULT_ROOTS = (REPO_ROOT / "frontend" / "src",)
+# #10 — consumer-overridable via .harness/spine_paths.yaml.
+# Falls back to "frontend/src" for backward compat.
+DEFAULT_ROOTS = spine_paths("frontend_src", ("frontend/src",))
 SCANNED_EXTS = {".ts", ".tsx", ".js", ".jsx"}
 EXCLUDE_VIRTUAL_PREFIXES = (
     "frontend/e2e/",
@@ -145,6 +147,7 @@ def _walk_files(root: Path) -> Iterable[Path]:
 
 
 def scan(roots: Iterable[Path], pretend_path: str | None) -> int:
+    """Run Q14 a11y rules on each path under `roots`. Return 1 if any errors fired."""
     total_errors = 0
     for root in roots:
         if not root.exists():
@@ -166,6 +169,7 @@ def scan(roots: Iterable[Path], pretend_path: str | None) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entrypoint: dispatch scan, return process exit code."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", type=Path, action="append")
     parser.add_argument("--pretend-path", type=str)

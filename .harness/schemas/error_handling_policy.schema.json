@@ -2,10 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Q17 error-handling policy",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
+  "required": ["spine_paths", "http_exception_names", "generic_exception_names"],
   "properties": {
-    "spine_paths": {"type": "array", "items": {"type": "string"}},
-    "http_exception_names": {"type": "array", "items": {"type": "string"}},
-    "generic_exception_names": {"type": "array", "items": {"type": "string"}}
+    "spine_paths": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "http_exception_names": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9_]+$"},
+      "minItems": 1
+    },
+    "generic_exception_names": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9_]+$"},
+      "minItems": 1
+    }
   }
 }

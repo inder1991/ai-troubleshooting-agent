@@ -42,31 +42,38 @@ def _load_yaml(path: Path) -> dict:
 
 
 def _parse_pyproject(path: Path) -> list[tuple[str, str]]:
-    """Crude: find [project] dependencies array, return (name, version) pairs."""
+    """Parse pyproject.toml [project.dependencies] using tomllib (3.11+ stdlib).
+
+    Handles multi-line specs, comments, and PEP 631 syntax correctly — the
+    previous regex-based parser failed silently on any of those.
+    """
     if not path.exists():
         return []
     try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+        import tomllib  # Python 3.11+
+    except ImportError:  # pragma: no cover - older Python
         return []
-    in_block = False
+    try:
+        with path.open("rb") as fh:
+            data = tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError):
+        return []
+    deps = (data.get("project") or {}).get("dependencies") or []
     out: list[tuple[str, str]] = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("dependencies") and "[" in stripped:
-            in_block = True
+    for spec in deps:
+        if not isinstance(spec, str):
             continue
-        if in_block:
-            if "]" in stripped:
-                in_block = False
-                continue
-            m = DEP_LINE_RE.match(line)
-            if m:
-                spec = m.group("spec")
-                parts = re.split(r"[<>=~!\s]", spec, maxsplit=1)
-                name = parts[0].strip()
-                version = spec[len(name):].strip() or "*"
-                out.append((name, version))
+        spec = spec.strip()
+        if not spec:
+            continue
+        # Split "<name>[extras]<op><version>" — find the first version
+        # operator or whitespace after the (optional) extras suffix.
+        parts = re.split(r"(?=[<>=~!\s;])", spec, maxsplit=1)
+        name_with_extras = parts[0].strip()
+        # Strip extras: "fastapi[all]" → "fastapi".
+        name = name_with_extras.split("[", 1)[0].strip()
+        version = (parts[1].strip() if len(parts) > 1 else "") or "*"
+        out.append((name, version))
     return out
 
 

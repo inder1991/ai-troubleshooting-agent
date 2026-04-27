@@ -1,0 +1,31 @@
+# Consumer-overridable spine path declarations (#10).
+#
+# Each check that historically hardcoded `backend/`, `backend/src/api`,
+# `frontend/src`, etc. should consult this file BEFORE falling back to the
+# original hardcoded default. Lets a Python-only or JS-only or non-monorepo
+# consumer point the harness at its actual layout without forking checks.
+#
+# Format: each top-level key maps a logical role to one or more relative
+# paths. A path that doesn't exist is silently skipped (consistent with
+# H-25 "missing input → silent skip on default targets").
+#
+# When a consumer overrides this file in their repo, it sits OUTSIDE the
+# overlay set in tools/sync_harness.py — local edits survive `make
+# harness-sync`.
+
+backend_src:
+  - backend/src
+backend_api:
+  - backend/src/api
+backend_models:
+  - backend/src/models
+backend_storage:
+  - backend/src/storage
+backend_tests:
+  - backend/tests
+frontend_src:
+  - frontend/src
+frontend_components_ui:
+  - frontend/src/components/ui
+frontend_services_api:
+  - frontend/src/services/api
