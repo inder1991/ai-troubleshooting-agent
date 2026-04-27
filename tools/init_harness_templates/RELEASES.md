@@ -1,5 +1,52 @@
 # Releases
 
+## v1.1.0 — Production hardening (signed) — **breaking baseline format**
+
+P0 bugs from the SDET production-readiness audit. **Bumps minor** because
+the on-disk baseline format changes: every entry's `file` field is now a
+repo-relative POSIX path instead of whatever absolute string the snapshot
+machine emitted. After upgrading, run **once**:
+
+```
+python3 tools/refresh_baselines.py --migrate-paths
+```
+
+Same-machine absolute paths migrate silently on next load. Foreign-machine
+absolute paths drop with `[WARN]` and need re-snapshotting via
+`make harness-baseline-refresh`.
+
+Fixes (audit IDs B1–B6):
+
+- **B1 — relative baseline paths.** `_common.normalize_path()` strips
+  `REPO_ROOT` from every emitted file location and at-load every baseline
+  entry. CI ↔ local stop diverging. (`load_baseline` migrate-on-read drops
+  foreign-machine entries loudly so merge surprises end at the WARN.)
+- **B5 — single regex source.** `_common.ERROR_LINE_PATTERN` is the only
+  place the H-16 `[ERROR] file=…:LINE rule=…` shape is described.
+  `run_validate.py` and `refresh_baselines.py` both import it. The new
+  `.+?` file capture handles paths with spaces / unicode / parens that the
+  old `\S+?` choked on.
+- **B6 — escape control chars in messages.** A docstring containing `\n`
+  or `\t` no longer corrupts the line-based emit format. `_escape_field()`
+  replaces `\n`, `\r`, `\t`, and `"`.
+- **B2 — atomic failure-log appends.** `tools/run_validate.py` takes
+  `fcntl.LOCK_EX` before each `.harness/.failure-log.jsonl` write so two
+  parallel `make validate-fast` invocations no longer interleave bytes.
+- **B4 — opt-in global GPG config.** `tools/setup_signing.sh` now defaults
+  to `--local` scope. `--global` is opt-in and refuses to overwrite an
+  existing `user.signingkey` / `tag.gpgsign` without `--force`.
+- **B3 — refuse `init_harness --target <self>`.** `tools/init_harness.py`
+  exits 2 if `--target` resolves to the harness source repo, preventing a
+  "what just happened to my main branch" footgun.
+- **`refresh_baselines.py --migrate-paths`** — in-place migrator for
+  v1.0.x baselines that doesn't re-run every check.
+
+302/302 harness tests pass; 145/145 check-rule tests pass; `validate-fast`
+is byte-identical between two consecutive runs after the migration.
+
+See `docs/decisions/2026-04-27-baseline-paths-relative-v1.1.0.md` for the
+full reasoning behind the breaking change.
+
 ## v1.0.4 — Enforcement + telemetry batch (signed)
 
 Four awesome-harness audit follow-ups, all $0 / no API spend:

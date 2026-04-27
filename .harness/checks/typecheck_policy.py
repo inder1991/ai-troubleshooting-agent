@@ -39,7 +39,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit  # noqa: E402
+from _common import emit, normalize_path  # noqa: E402
 
 DEFAULT_POLICY = REPO_ROOT / ".harness" / "typecheck_policy.yaml"
 DEFAULT_MYPY_BASELINE = REPO_ROOT / ".harness" / "baselines" / "mypy_baseline.json"

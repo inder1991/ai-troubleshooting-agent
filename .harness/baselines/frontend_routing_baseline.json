@@ -1,26 +1,26 @@
 [
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Observatory/NOCWallTab.tsx",
+    "file": "frontend/src/components/Observatory/NOCWallTab.tsx",
     "line": 153,
     "rule": "Q6.no-anchor-for-internal-nav"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/components/Observatory/NOCWallTab.tsx",
+    "file": "frontend/src/components/Observatory/NOCWallTab.tsx",
     "line": 156,
     "rule": "Q6.no-anchor-for-internal-nav"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/router.tsx",
+    "file": "frontend/src/router.tsx",
     "line": 9,
     "rule": "Q6.pages-must-be-lazy"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/router.tsx",
+    "file": "frontend/src/router.tsx",
     "line": 11,
     "rule": "Q6.pages-must-be-lazy"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/src/router.tsx",
+    "file": "frontend/src/router.tsx",
     "line": 48,
     "rule": "Q6.pages-must-be-lazy"
   }

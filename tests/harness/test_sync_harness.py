@@ -26,20 +26,28 @@ def _git(cwd: Path, *args: str, env: dict | None = None) -> subprocess.Completed
 
 
 def _seed_upstream(tmp: Path) -> Path:
-    """Create a minimal upstream git repo containing a .harness/ skeleton + an annotated (unsigned) tag v1.0.0."""
+    """Create a minimal upstream git repo containing a .harness/ skeleton + an annotated (unsigned) tag v1.0.0.
+
+    Explicitly disables tag.gpgsign + commit.gpgsign so the test produces
+    UNSIGNED tags regardless of the developer's global git config — that's
+    the whole point: we want to assert that sync_harness REJECTS unsigned
+    tags by default.
+    """
     upstream = tmp / "upstream"
     upstream.mkdir()
     _git(upstream, "init", "-b", "main")
     _git(upstream, "config", "user.email", "test@local")
     _git(upstream, "config", "user.name", "test")
+    _git(upstream, "config", "commit.gpgsign", "false")
+    _git(upstream, "config", "tag.gpgsign", "false")
     (upstream / ".harness").mkdir()
     (upstream / ".harness" / "marker.txt").write_text("upstream content\n")
     (upstream / "tools").mkdir()
     (upstream / "tools" / "_common.py").write_text("# upstream tools _common\n")
     _git(upstream, "add", "-A")
     _git(upstream, "-c", "commit.gpgsign=false", "commit", "-m", "init")
-    _git(upstream, "tag", "-a", "v1.0.0", "-m", "v1.0.0 unsigned annotated tag")
-    _git(upstream, "tag", "lightweight-tag")  # for the lightweight-tag negative test
+    _git(upstream, "-c", "tag.gpgsign=false", "tag", "-a", "v1.0.0", "-m", "v1.0.0 unsigned annotated tag")
+    _git(upstream, "-c", "tag.gpgsign=false", "tag", "lightweight-tag")  # for the lightweight-tag negative test
     return upstream
 
 

@@ -37,9 +37,10 @@ CHECKS_DIR = REPO_ROOT / ".harness/checks"
 # Point #25 — rolling failure log.
 FAILURE_LOG_PATH = REPO_ROOT / ".harness" / ".failure-log.jsonl"
 FAILURE_LOG_MAX_BYTES = 10 * 1024 * 1024  # 10 MB rotation threshold
-ERROR_LINE_RE = re.compile(
-    r'^\[ERROR\]\s+file=(?P<file>\S+?):(?P<line>\d+)\s+rule=(?P<rule>\S+)'
-)
+
+# B5 hardening — import the shared regex from _common so we never drift.
+sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
+from _common import ERROR_LINE_PATTERN as ERROR_LINE_RE  # noqa: E402
 
 # Set once per process so every log line in a run shares one session id.
 _SESSION_ID = uuid.uuid4().hex[:12]
@@ -88,8 +89,22 @@ def _rotate_failure_log() -> None:
         pass
 
 
+# B2 hardening — fcntl is POSIX-only; on Windows we fall back to no locking
+# (concurrent runs can interleave; documented limitation).
+try:
+    import fcntl as _fcntl
+    _HAVE_FCNTL = True
+except ImportError:  # pragma: no cover — Windows
+    _HAVE_FCNTL = False
+
+
 def _append_failure_log(rule: str, file: str, line: int, commit: str | None) -> None:
-    """Append one structured failure entry to .harness/.failure-log.jsonl."""
+    """Append one structured failure entry to .harness/.failure-log.jsonl.
+
+    B2 hardening: holds fcntl.LOCK_EX during the write so concurrent
+    validate-fast invocations (CI + local + IDE pre-save trigger) can't
+    interleave entries and corrupt the JSONL.
+    """
     entry = {
         "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
         "rule": rule,
@@ -102,7 +117,15 @@ def _append_failure_log(rule: str, file: str, line: int, commit: str | None) -> 
     try:
         FAILURE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with FAILURE_LOG_PATH.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(entry, sort_keys=True) + "\n")
+            if _HAVE_FCNTL:
+                _fcntl.flock(fh.fileno(), _fcntl.LOCK_EX)
+                try:
+                    fh.write(json.dumps(entry, sort_keys=True) + "\n")
+                finally:
+                    _fcntl.flock(fh.fileno(), _fcntl.LOCK_UN)
+            else:
+                # Windows: no lock available. Document, don't crash.
+                fh.write(json.dumps(entry, sort_keys=True) + "\n")
     except OSError:
         # Log failure must never abort validate-fast.
         pass

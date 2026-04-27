@@ -173,6 +173,22 @@ def main(argv: list[str] | None = None) -> int:
 
     args.target.mkdir(parents=True, exist_ok=True)
 
+    # B3 hardening — refuse if --target resolves to the source repo itself.
+    # Bootstrapping the harness INTO its own source produces 0 file writes
+    # (everything overlap-skipped) and a misleading "complete" message.
+    target_resolved = args.target.resolve()
+    src_resolved = src_repo.resolve()
+    if target_resolved == src_resolved:
+        print(
+            f"[ERROR] --target ({target_resolved}) resolves to the harness source "
+            "repo itself.\n"
+            "        Bootstrap into a DIFFERENT directory. To bootstrap from the "
+            "standalone\n"
+            "        harness instead of the local source, use --from-git latest.",
+            file=sys.stderr,
+        )
+        return 2
+
     # CLAUDE.md (with template substitution)
     claude_template = (templates_dir / "CLAUDE.md.tmpl").read_text(encoding="utf-8")
     claude_out = args.target / "CLAUDE.md"

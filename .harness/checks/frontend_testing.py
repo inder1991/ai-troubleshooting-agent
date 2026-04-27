@@ -26,7 +26,7 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline, spine_paths  # noqa: E402
+from _common import emit, load_baseline, normalize_path, spine_paths  # noqa: E402
 
 DEFAULT_ROOTS = spine_paths("frontend_src", ("frontend/src",))
 SCANNED_EXTS = {".ts", ".tsx", ".js", ".jsx"}
@@ -49,7 +49,7 @@ IT_OR_TEST_BLOCK_RE = re.compile(r'\b(it|test)\s*\(\s*["\']')
 
 
 def _emit(path: Path, rule: str, msg: str, suggestion: str, line: int) -> bool:
-    sig = (str(path), int(line), rule)
+    sig = (normalize_path(path), int(line), rule)
     if sig in BASELINE:
         return False
     emit("ERROR", path, rule, msg, suggestion, line=line)

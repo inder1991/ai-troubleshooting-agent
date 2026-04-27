@@ -1,2521 +1,2521 @@
 [
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "file": "backend/src/agents/agent3/fix_generator.py",
     "line": 34,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "file": "backend/src/agents/agent3/fix_generator.py",
     "line": 35,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 191,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 192,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 193,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 194,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 195,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 196,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 197,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 198,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/command_validator.py",
+    "file": "backend/src/agents/cluster/command_validator.py",
     "line": 304,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/failure_patterns.py",
+    "file": "backend/src/agents/cluster/failure_patterns.py",
     "line": 126,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/failure_patterns.py",
+    "file": "backend/src/agents/cluster/failure_patterns.py",
     "line": 199,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/failure_patterns.py",
+    "file": "backend/src/agents/cluster/failure_patterns.py",
     "line": 235,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/failure_patterns.py",
+    "file": "backend/src/agents/cluster/failure_patterns.py",
     "line": 262,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/failure_patterns.py",
+    "file": "backend/src/agents/cluster/failure_patterns.py",
     "line": 289,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/proactive_analyzer.py",
+    "file": "backend/src/agents/cluster/proactive_analyzer.py",
     "line": 274,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/proactive_analyzer.py",
+    "file": "backend/src/agents/cluster/proactive_analyzer.py",
     "line": 317,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/proactive_analyzer.py",
+    "file": "backend/src/agents/cluster/proactive_analyzer.py",
     "line": 722,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/proactive_analyzer.py",
+    "file": "backend/src/agents/cluster/proactive_analyzer.py",
     "line": 906,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/proactive_analyzer.py",
+    "file": "backend/src/agents/cluster/proactive_analyzer.py",
     "line": 923,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/proactive_analyzer.py",
+    "file": "backend/src/agents/cluster/proactive_analyzer.py",
     "line": 1039,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/proactive_analyzer.py",
+    "file": "backend/src/agents/cluster/proactive_analyzer.py",
     "line": 1073,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/cluster/proactive_analyzer.py",
+    "file": "backend/src/agents/cluster/proactive_analyzer.py",
     "line": 1074,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/confidence_calibrator.py",
+    "file": "backend/src/agents/confidence_calibrator.py",
     "line": 33,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/confidence_calibrator.py",
+    "file": "backend/src/agents/confidence_calibrator.py",
     "line": 73,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/graph_v2.py",
+    "file": "backend/src/agents/database/graph_v2.py",
     "line": 757,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/graph_v2.py",
+    "file": "backend/src/agents/database/graph_v2.py",
     "line": 759,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/graph_v2.py",
+    "file": "backend/src/agents/database/graph_v2.py",
     "line": 769,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/graph_v2.py",
+    "file": "backend/src/agents/database/graph_v2.py",
     "line": 775,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/graph_v2.py",
+    "file": "backend/src/agents/database/graph_v2.py",
     "line": 777,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/graph_v2.py",
+    "file": "backend/src/agents/database/graph_v2.py",
     "line": 790,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/graph_v2.py",
+    "file": "backend/src/agents/database/graph_v2.py",
     "line": 795,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/tool_definitions.py",
+    "file": "backend/src/agents/database/tool_definitions.py",
     "line": 124,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/tool_policy.py",
+    "file": "backend/src/agents/database/tool_policy.py",
     "line": 282,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/tool_policy.py",
+    "file": "backend/src/agents/database/tool_policy.py",
     "line": 288,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/tools/pg_read_tools.py",
+    "file": "backend/src/agents/database/tools/pg_read_tools.py",
     "line": 60,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/tools/pg_read_tools.py",
+    "file": "backend/src/agents/database/tools/pg_read_tools.py",
     "line": 120,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/tools/pg_read_tools.py",
+    "file": "backend/src/agents/database/tools/pg_read_tools.py",
     "line": 155,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/database/tools/pg_read_tools.py",
+    "file": "backend/src/agents/database/tools/pg_read_tools.py",
     "line": 184,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/network/report_generator.py",
+    "file": "backend/src/agents/network/report_generator.py",
     "line": 74,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/orchestration/reducer.py",
+    "file": "backend/src/agents/orchestration/reducer.py",
     "line": 4,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/orchestration/reducer.py",
+    "file": "backend/src/agents/orchestration/reducer.py",
     "line": 31,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "file": "backend/src/agents/supervisor.py",
     "line": 128,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "file": "backend/src/agents/supervisor.py",
     "line": 1046,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "file": "backend/src/agents/supervisor.py",
     "line": 1706,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "file": "backend/src/agents/supervisor.py",
     "line": 2485,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/tracing/patterns/n_plus_one.py",
+    "file": "backend/src/agents/tracing/patterns/n_plus_one.py",
     "line": 5,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/collector_endpoints.py",
+    "file": "backend/src/api/collector_endpoints.py",
     "line": 289,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "file": "backend/src/api/fixtures/_build_zepay_main_incident.py",
     "line": 415,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "file": "backend/src/api/fixtures/_build_zepay_main_incident.py",
     "line": 421,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "file": "backend/src/api/fixtures/_build_zepay_main_incident.py",
     "line": 425,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "file": "backend/src/api/fixtures/_build_zepay_main_incident.py",
     "line": 527,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "file": "backend/src/api/fixtures/_build_zepay_main_incident.py",
     "line": 630,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "file": "backend/src/api/fixtures/_build_zepay_main_incident.py",
     "line": 640,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/fixtures/_build_zepay_main_incident.py",
+    "file": "backend/src/api/fixtures/_build_zepay_main_incident.py",
     "line": 1110,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
+    "file": "backend/src/api/health.py",
     "line": 92,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
+    "file": "backend/src/api/health.py",
     "line": 100,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/health.py",
+    "file": "backend/src/api/health.py",
     "line": 100,
     "rule": "Q8.text-call-outside-analytics"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "file": "backend/src/api/main.py",
     "line": 861,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/main.py",
+    "file": "backend/src/api/main.py",
     "line": 896,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "file": "backend/src/api/monitor_endpoints.py",
     "line": 265,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/monitor_endpoints.py",
+    "file": "backend/src/api/monitor_endpoints.py",
     "line": 277,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_alert_endpoints.py",
+    "file": "backend/src/api/network_alert_endpoints.py",
     "line": 69,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 358,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 481,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 566,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 618,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 631,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 857,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 870,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 900,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 910,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 920,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 928,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 941,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 1197,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 1233,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 1392,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 1411,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 1625,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 1650,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 1745,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_endpoints.py",
+    "file": "backend/src/api/network_endpoints.py",
     "line": 2111,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_event_endpoints.py",
+    "file": "backend/src/api/network_event_endpoints.py",
     "line": 62,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_event_endpoints.py",
+    "file": "backend/src/api/network_event_endpoints.py",
     "line": 85,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_event_endpoints.py",
+    "file": "backend/src/api/network_event_endpoints.py",
     "line": 97,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_probe_endpoints.py",
+    "file": "backend/src/api/network_probe_endpoints.py",
     "line": 33,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/network_probe_endpoints.py",
+    "file": "backend/src/api/network_probe_endpoints.py",
     "line": 58,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_feedback.py",
+    "file": "backend/src/api/routes_feedback.py",
     "line": 17,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "file": "backend/src/api/routes_v4.py",
     "line": 1291,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "file": "backend/src/api/routes_v4.py",
     "line": 2734,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/routes_v4.py",
+    "file": "backend/src/api/routes_v4.py",
     "line": 2776,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "file": "backend/src/api/search_endpoints.py",
     "line": 62,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "file": "backend/src/api/search_endpoints.py",
     "line": 99,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "file": "backend/src/api/search_endpoints.py",
     "line": 100,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "file": "backend/src/api/search_endpoints.py",
     "line": 101,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "file": "backend/src/api/search_endpoints.py",
     "line": 106,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/api/search_endpoints.py",
+    "file": "backend/src/api/search_endpoints.py",
     "line": 115,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 114,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 119,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 147,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 164,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 189,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 195,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 219,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 234,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 245,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 276,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 295,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 308,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 327,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 333,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 372,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 397,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 475,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 476,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 522,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/cloud_store.py",
+    "file": "backend/src/cloud/cloud_store.py",
     "line": 538,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 83,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 87,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 135,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 152,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 163,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 168,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 197,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 228,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/policy_store.py",
+    "file": "backend/src/cloud/policy_store.py",
     "line": 244,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/cloud/sync/engine.py",
+    "file": "backend/src/cloud/sync/engine.py",
     "line": 107,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 48,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 57,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 66,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 88,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 89,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 90,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 91,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 179,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 182,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 192,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 278,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 280,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 281,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mock_adapter.py",
+    "file": "backend/src/database/adapters/mock_adapter.py",
     "line": 282,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mongo.py",
+    "file": "backend/src/database/adapters/mongo.py",
     "line": 506,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mongo.py",
+    "file": "backend/src/database/adapters/mongo.py",
     "line": 534,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/mongo.py",
+    "file": "backend/src/database/adapters/mongo.py",
     "line": 535,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 103,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 115,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 116,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 117,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 118,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 133,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 147,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 148,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 149,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 151,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 154,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 155,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 170,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 193,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 201,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 215,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 227,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 235,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 243,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 256,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 260,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 279,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 294,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 315,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 332,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 390,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 412,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 425,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 446,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 515,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 520,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 533,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 550,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 563,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 569,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 585,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 592,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 593,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 606,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 612,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 665,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 666,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 667,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 672,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 674,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 675,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/adapters/postgres.py",
+    "file": "backend/src/database/adapters/postgres.py",
     "line": 676,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "file": "backend/src/database/diagnostic_store.py",
     "line": 40,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "file": "backend/src/database/diagnostic_store.py",
     "line": 72,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "file": "backend/src/database/diagnostic_store.py",
     "line": 79,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/diagnostic_store.py",
+    "file": "backend/src/database/diagnostic_store.py",
     "line": 87,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/engine.py",
+    "file": "backend/src/database/engine.py",
     "line": 20,
     "rule": "Q8.asyncsession-quarantine"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/engine.py",
+    "file": "backend/src/database/engine.py",
     "line": 60,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/evidence_store.py",
+    "file": "backend/src/database/evidence_store.py",
     "line": 65,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "file": "backend/src/database/network_chat_store.py",
     "line": 69,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "file": "backend/src/database/network_chat_store.py",
     "line": 107,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "file": "backend/src/database/network_chat_store.py",
     "line": 128,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/network_chat_store.py",
+    "file": "backend/src/database/network_chat_store.py",
     "line": 145,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "file": "backend/src/database/profile_store.py",
     "line": 40,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "file": "backend/src/database/profile_store.py",
     "line": 61,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "file": "backend/src/database/profile_store.py",
     "line": 118,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/profile_store.py",
+    "file": "backend/src/database/profile_store.py",
     "line": 125,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/remediation_engine.py",
+    "file": "backend/src/database/remediation_engine.py",
     "line": 82,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/remediation_store.py",
+    "file": "backend/src/database/remediation_store.py",
     "line": 67,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/remediation_store.py",
+    "file": "backend/src/database/remediation_store.py",
     "line": 102,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/database/remediation_store.py",
+    "file": "backend/src/database/remediation_store.py",
     "line": 127,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/audit_store.py",
+    "file": "backend/src/integrations/audit_store.py",
     "line": 58,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/audit_store.py",
+    "file": "backend/src/integrations/audit_store.py",
     "line": 91,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/audit_store.py",
+    "file": "backend/src/integrations/audit_store.py",
     "line": 97,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/backend_audit.py",
+    "file": "backend/src/integrations/backend_audit.py",
     "line": 148,
     "rule": "Q8.text-call-outside-analytics"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/backend_audit.py",
+    "file": "backend/src/integrations/backend_audit.py",
     "line": 149,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/credential_resolver.py",
+    "file": "backend/src/integrations/credential_resolver.py",
     "line": 51,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/postmortem_renderer.py",
+    "file": "backend/src/integrations/postmortem_renderer.py",
     "line": 146,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 43,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 53,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 60,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 67,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 75,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 82,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 89,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 91,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 131,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 141,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 148,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 155,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/profile_store.py",
+    "file": "backend/src/integrations/profile_store.py",
     "line": 163,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/secret_store.py",
+    "file": "backend/src/integrations/secret_store.py",
     "line": 33,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "file": "backend/src/integrations/store.py",
     "line": 24,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "file": "backend/src/integrations/store.py",
     "line": 32,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "file": "backend/src/integrations/store.py",
     "line": 39,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "file": "backend/src/integrations/store.py",
     "line": 45,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/store.py",
+    "file": "backend/src/integrations/store.py",
     "line": 52,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/alert_engine.py",
+    "file": "backend/src/network/alert_engine.py",
     "line": 191,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 86,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 89,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 104,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 107,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 127,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 130,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 146,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 149,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 277,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 282,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 311,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 316,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 328,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 333,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/event_store.py",
+    "file": "backend/src/network/collectors/event_store.py",
     "line": 336,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 82,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 88,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 139,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 146,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 151,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 158,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 167,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 174,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/collectors/instance_store.py",
+    "file": "backend/src/network/collectors/instance_store.py",
     "line": 217,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "file": "backend/src/network/config_drift.py",
     "line": 55,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "file": "backend/src/network/config_drift.py",
     "line": 62,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "file": "backend/src/network/config_drift.py",
     "line": 88,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "file": "backend/src/network/config_drift.py",
     "line": 99,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "file": "backend/src/network/config_drift.py",
     "line": 102,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "file": "backend/src/network/config_drift.py",
     "line": 109,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/config_drift.py",
+    "file": "backend/src/network/config_drift.py",
     "line": 117,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "file": "backend/src/network/flow_store.py",
     "line": 59,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "file": "backend/src/network/flow_store.py",
     "line": 68,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "file": "backend/src/network/flow_store.py",
     "line": 77,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "file": "backend/src/network/flow_store.py",
     "line": 86,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "file": "backend/src/network/flow_store.py",
     "line": 95,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "file": "backend/src/network/flow_store.py",
     "line": 105,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/flow_store.py",
+    "file": "backend/src/network/flow_store.py",
     "line": 113,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/idempotency.py",
+    "file": "backend/src/network/idempotency.py",
     "line": 1,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/repository/interface.py",
+    "file": "backend/src/network/repository/interface.py",
     "line": 93,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/repository/interface.py",
+    "file": "backend/src/network/repository/interface.py",
     "line": 98,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/repository/interface.py",
+    "file": "backend/src/network/repository/interface.py",
     "line": 103,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/repository/interface.py",
+    "file": "backend/src/network/repository/interface.py",
     "line": 108,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/repository/interface.py",
+    "file": "backend/src/network/repository/interface.py",
     "line": 113,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/repository/interface.py",
+    "file": "backend/src/network/repository/interface.py",
     "line": 118,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/snmp_scheduler.py",
+    "file": "backend/src/network/snmp_scheduler.py",
     "line": 76,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_alert_engine.py",
+    "file": "backend/src/network/sqlite_alert_engine.py",
     "line": 71,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 115,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 123,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 131,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 139,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 148,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 161,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 173,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 181,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 199,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 214,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 219,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 224,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/sqlite_metrics_store.py",
+    "file": "backend/src/network/sqlite_metrics_store.py",
     "line": 245,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 92,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 110,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 118,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 125,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 135,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 140,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 146,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 172,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 201,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 210,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 349,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 389,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 398,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 465,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 488,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 568,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 580,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 605,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 612,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 639,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 737,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 745,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 746,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 747,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 748,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 749,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 750,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 751,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 765,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 781,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 799,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 809,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 820,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 840,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 886,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 905,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1145,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1185,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1224,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1231,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1258,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1259,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1270,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1295,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1319,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1345,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1390,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1422,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1431,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1435,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1445,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1464,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1484,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1511,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1516,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1567,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1626,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1700,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1728,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1747,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1756,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1762,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1768,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1788,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1792,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1819,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1822,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1825,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1830,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1836,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1856,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1861,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1867,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1885,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1907,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1918,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1971,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1972,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 1983,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2019,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2030,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2066,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2077,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2103,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2119,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2145,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2206,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2242,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2294,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2295,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2306,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2408,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2435,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2453,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2479,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2527,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2574,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2577,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2578,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2590,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2609,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2619,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2632,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2654,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2664,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2689,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2722,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2747,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2783,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2795,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2807,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2820,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2834,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2862,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2874,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2955,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2956,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2965,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2975,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2983,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 2992,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3004,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3036,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3065,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3098,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3116,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3150,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3241,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3471,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3540,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3576,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3577,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3587,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3610,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3631,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3652,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3680,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3701,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3724,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3749,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3770,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3794,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3826,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3847,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3868,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3915,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3916,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3926,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3949,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3957,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 3964,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4009,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4022,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4044,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4071,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4087,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4093,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4125,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4140,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4142,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4156,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4179,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4181,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4204,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4214,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4230,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4273,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4276,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/topology_store.py",
+    "file": "backend/src/network/topology_store.py",
     "line": 4290,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/observability/store.py",
+    "file": "backend/src/observability/store.py",
     "line": 82,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/observability/store.py",
+    "file": "backend/src/observability/store.py",
     "line": 92,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/observability/store.py",
+    "file": "backend/src/observability/store.py",
     "line": 109,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/observability/store.py",
+    "file": "backend/src/observability/store.py",
     "line": 152,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/observability/store.py",
+    "file": "backend/src/observability/store.py",
     "line": 153,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/prompts/registry.py",
+    "file": "backend/src/prompts/registry.py",
     "line": 25,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/scripts/seed_fixtures.py",
+    "file": "backend/src/scripts/seed_fixtures.py",
     "line": 190,
     "rule": "Q8.text-call-outside-analytics"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/scripts/seed_fixtures.py",
+    "file": "backend/src/scripts/seed_fixtures.py",
     "line": 191,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workers/trace_baseline_populator.py",
+    "file": "backend/src/workers/trace_baseline_populator.py",
     "line": 29,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workers/trace_baseline_populator.py",
+    "file": "backend/src/workers/trace_baseline_populator.py",
     "line": 187,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workers/trace_baseline_populator.py",
+    "file": "backend/src/workers/trace_baseline_populator.py",
     "line": 219,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/outbox.py",
+    "file": "backend/src/workflows/outbox.py",
     "line": 17,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/outbox.py",
+    "file": "backend/src/workflows/outbox.py",
     "line": 59,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 59,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 85,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 93,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 117,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 132,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 138,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 176,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 201,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 206,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 219,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 237,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 289,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 298,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 310,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 327,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 339,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 358,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 397,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/repository.py",
+    "file": "backend/src/workflows/repository.py",
     "line": 404,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/resume.py",
+    "file": "backend/src/workflows/resume.py",
     "line": 59,
     "rule": "Q8.text-call-outside-analytics"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/resume.py",
+    "file": "backend/src/workflows/resume.py",
     "line": 61,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/run_lock.py",
+    "file": "backend/src/workflows/run_lock.py",
     "line": 11,
     "rule": "Q8.raw-sql-unjustified"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/workflows/service.py",
+    "file": "backend/src/workflows/service.py",
     "line": 581,
     "rule": "Q8.raw-sql-unjustified"
   }

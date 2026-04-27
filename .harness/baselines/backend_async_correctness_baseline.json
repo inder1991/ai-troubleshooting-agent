@@ -1,51 +1,51 @@
 [
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent3/fix_generator.py",
+    "file": "backend/src/agents/agent3/fix_generator.py",
     "line": 903,
     "rule": "Q7.no-requests"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/agent4_metrics_analyzer.py",
+    "file": "backend/src/agents/agent4_metrics_analyzer.py",
     "line": 1,
     "rule": "Q7.no-requests"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/http_pool.py",
+    "file": "backend/src/agents/http_pool.py",
     "line": 8,
     "rule": "Q7.no-requests"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/log_agent.py",
+    "file": "backend/src/agents/log_agent.py",
     "line": 8,
     "rule": "Q7.no-requests"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "file": "backend/src/agents/metrics_agent.py",
     "line": 8,
     "rule": "Q7.no-requests"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "file": "backend/src/agents/metrics_agent.py",
     "line": 1193,
     "rule": "Q7.no-requests"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/metrics_agent.py",
+    "file": "backend/src/agents/metrics_agent.py",
     "line": 1211,
     "rule": "Q7.no-requests"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/retry.py",
+    "file": "backend/src/agents/retry.py",
     "line": 10,
     "rule": "Q7.no-requests"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/cicd/argocd_client.py",
+    "file": "backend/src/integrations/cicd/argocd_client.py",
     "line": 8,
     "rule": "Q7.no-aiohttp"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/cicd/jenkins_client.py",
+    "file": "backend/src/integrations/cicd/jenkins_client.py",
     "line": 10,
     "rule": "Q7.no-aiohttp"
   }

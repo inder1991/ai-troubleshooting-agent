@@ -34,8 +34,10 @@ from _common import emit  # noqa: E402
 
 DEFAULT_TARGET = REPO_ROOT / ".harness" / "checks"
 
+# B5 hardening — file capture is `.+?` instead of `\S+` so paths with
+# spaces / unicode pass conformance. Anchor: `:LINE rule= ... message="..." suggestion="..."`.
 OUTPUT_LINE_RE = re.compile(
-    r'^\[(ERROR|WARN|INFO)\]\s+file=\S+\s+rule=\S+\s+message="[^"]*"\s+suggestion="[^"]*"$'
+    r'^\[(ERROR|WARN|INFO)\]\s+file=.+?\s+rule=\S+\s+message="[^"]*"\s+suggestion="[^"]*"$'
 )
 ALLOWLIST_PREFIXES = (
     "[VALIDATE]", "[INFO]", "VALIDATE_SUMMARY", "Traceback",
@@ -93,6 +95,7 @@ def _validate(check: Path) -> int:
 
 
 def scan(target: Path) -> int:
+    """Run the output-format self-test against `target` (file or dir of checks)."""
     if not target.exists():
         emit("ERROR", target, "harness.target-missing",
              f"target does not exist: {target}",

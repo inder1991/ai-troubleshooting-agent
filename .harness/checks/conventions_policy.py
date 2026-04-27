@@ -26,7 +26,7 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline, spine_paths  # noqa: E402
+from _common import emit, load_baseline, normalize_path, spine_paths  # noqa: E402
 
 DEFAULT_ROOTS = (REPO_ROOT,)
 EXCLUDE_FS = (
@@ -45,7 +45,7 @@ DEFAULT_EXPORT_RE = re.compile(r'^\s*export\s+default\b', re.MULTILINE)
 
 
 def _emit(file: Path, rule: str, msg: str, suggestion: str, line: int = 1) -> bool:
-    sig = (str(file), int(line), rule)
+    sig = (normalize_path(file), int(line), rule)
     if sig in BASELINE:
         return False
     emit("ERROR", file, rule, msg, suggestion, line=line)

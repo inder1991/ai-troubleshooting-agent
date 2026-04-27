@@ -1,6 +1,6 @@
 [
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/frontend/package.json",
+    "file": "frontend/package.json",
     "line": 1,
     "rule": "Q11.npm-unlisted"
   }

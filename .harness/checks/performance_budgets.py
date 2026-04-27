@@ -26,7 +26,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline, spine_paths  # noqa: E402
+from _common import emit, load_baseline, normalize_path, spine_paths  # noqa: E402
 
 DEFAULT_BUDGETS = REPO_ROOT / ".harness" / "performance_budgets.yaml"
 COST_HINT_FIELDS = ("tool_calls_max", "tokens_max", "wall_clock_max_ms")
@@ -34,7 +34,7 @@ BASELINE = load_baseline("performance_budgets")
 
 
 def _emit(file: Path, rule: str, msg: str, suggestion: str, line: int = 1) -> bool:
-    sig = (str(file), int(line), rule)
+    sig = (normalize_path(file), int(line), rule)
     if sig in BASELINE:
         return False
     emit("ERROR", file, rule, msg, suggestion, line=line)

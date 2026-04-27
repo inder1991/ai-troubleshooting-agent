@@ -18,6 +18,7 @@ H-25:
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import subprocess
@@ -37,9 +38,9 @@ EXEMPT_NAMES = {
     "typecheck_policy.py",
 }
 
-LINE_RE = re.compile(
-    r'^\[ERROR\]\s+file=(?P<file>\S+?):(?P<line>\d+)\s+rule=(?P<rule>\S+)'
-)
+# B5 hardening — import the shared regex from _common so we never drift.
+sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
+from _common import ERROR_LINE_PATTERN as LINE_RE, normalize_path  # noqa: E402
 
 
 def _read_existing_count(out_path: Path) -> int:
@@ -127,8 +128,119 @@ def _refresh_one(check: Path) -> int:
     return 0
 
 
-def main() -> int:
-    """Walk .harness/checks/, refresh baseline for each non-exempt check."""
+def _migrate_one(out_path: Path) -> tuple[int, int, int]:
+    """Rewrite one baseline JSON in place, normalizing every entry's `file`
+    field to repo-relative POSIX form.
+
+    S7 (B1 follow-on): legacy v1.0.x baselines store absolute paths from
+    whatever machine snapshotted them. This in-place migration converts
+    them to relative paths WITHOUT re-running the underlying check (which
+    would also pick up new findings — a separate decision).
+
+    Returns (kept, dropped_foreign, total_in).
+    """
+    if not out_path.exists():
+        return (0, 0, 0)
+    try:
+        data = json.loads(out_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"[WARN] {out_path.name}: unparseable, skipping ({exc})", file=sys.stderr)
+        return (0, 0, 0)
+    if not isinstance(data, list):
+        print(f"[WARN] {out_path.name}: not a JSON array, skipping", file=sys.stderr)
+        return (0, 0, 0)
+
+    repo_root_str = str(REPO_ROOT.resolve())
+    kept: list[dict] = []
+    dropped = 0
+    seen: set[tuple[str, int, str]] = set()
+    for entry in data:
+        if not (isinstance(entry, dict) and {"file", "line", "rule"} <= set(entry.keys())):
+            continue
+        raw = str(entry["file"])
+        # Foreign-machine detection mirrors load_baseline() exactly.
+        if raw.startswith("/") or (len(raw) >= 2 and raw[1] == ":"):
+            if not raw.startswith(repo_root_str + "/") and not raw.startswith(repo_root_str + "\\"):
+                try:
+                    Path(raw).resolve().relative_to(REPO_ROOT.resolve())
+                except (ValueError, OSError):
+                    dropped += 1
+                    continue
+        normalized = normalize_path(raw)
+        key = (normalized, int(entry["line"]), str(entry["rule"]))
+        if key in seen:
+            continue
+        seen.add(key)
+        new_entry = dict(entry)
+        new_entry["file"] = normalized
+        kept.append(new_entry)
+
+    kept.sort(key=lambda e: (e["file"], e["line"], e["rule"]))
+
+    # Atomic write — same pattern as _refresh_one.
+    new_path = out_path.with_suffix(out_path.suffix + ".new")
+    new_path.write_text(
+        json.dumps(kept, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    new_path.replace(out_path)
+    return (len(kept), dropped, len(data))
+
+
+def _migrate_all() -> int:
+    """Walk every baseline JSON; normalize paths in place.
+
+    Exits 0 on success; 1 if any baseline was dropped foreign entries
+    (caller may want to review the diff before committing).
+    """
+    if not BASELINES_DIR.is_dir():
+        print("[INFO] no baselines directory; nothing to migrate")
+        return 0
+    total_kept = 0
+    total_dropped = 0
+    files_touched = 0
+    for path in sorted(BASELINES_DIR.glob("*_baseline.json")):
+        kept, dropped, total = _migrate_one(path)
+        if total == 0:
+            continue
+        files_touched += 1
+        total_kept += kept
+        total_dropped += dropped
+        rel = path.relative_to(REPO_ROOT)
+        if dropped:
+            print(
+                f"[WARN] {rel}: kept {kept}, dropped {dropped} foreign-machine entries "
+                f"(of {total} total)"
+            )
+        else:
+            print(f"[INFO] {rel}: {kept} entries (paths normalized)")
+    print(
+        f"[INFO] migration complete: {files_touched} baselines, "
+        f"{total_kept} entries kept, {total_dropped} foreign entries dropped"
+    )
+    return 1 if total_dropped else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Walk .harness/checks/, refresh baseline for each non-exempt check.
+
+    With `--migrate-paths`, instead of re-running checks, walk every
+    baseline JSON and convert absolute file paths to repo-relative POSIX
+    form (S7 — supports v1.0.x → v1.1.0 baseline migration without picking
+    up new findings).
+    """
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--migrate-paths",
+        action="store_true",
+        help="In-place normalize every baseline's `file` field to repo-relative POSIX. "
+             "Drops entries whose absolute paths point outside this repo.",
+    )
+    args = parser.parse_args(argv)
+
+    if args.migrate_paths:
+        return _migrate_all()
+
     if not CHECKS_DIR.is_dir():
         return 0
     rc = 0

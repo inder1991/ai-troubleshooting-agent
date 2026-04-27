@@ -1,26 +1,26 @@
 [
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/agents/supervisor.py",
+    "file": "backend/src/agents/supervisor.py",
     "line": 1327,
     "rule": "discipline.todo-in-prod"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/cicd/argocd_client.py",
+    "file": "backend/src/integrations/cicd/argocd_client.py",
     "line": 130,
     "rule": "discipline.todo-in-prod"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/cicd/jenkins_client.py",
+    "file": "backend/src/integrations/cicd/jenkins_client.py",
     "line": 135,
     "rule": "discipline.todo-in-prod"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/integrations/cicd/resolver.py",
+    "file": "backend/src/integrations/cicd/resolver.py",
     "line": 91,
     "rule": "discipline.todo-in-prod"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/backend/src/network/discovery_scheduler.py",
+    "file": "backend/src/network/discovery_scheduler.py",
     "line": 47,
     "rule": "discipline.todo-in-prod"
   }
