@@ -2,6 +2,7 @@
 .cursorrules
 .harness/README.md
 .harness/accessibility_policy.yaml
+.harness/baselines/_TICKETS.md
 .harness/checks/__init__.py
 .harness/checks/_common.py
 .harness/checks/accessibility_policy.py
@@ -36,6 +37,8 @@
 .harness/dependencies.yaml
 .harness/documentation_policy.yaml
 .harness/error_handling_policy.yaml
+.harness/generated/.gitkeep
+.harness/generated/README.md
 .harness/generators/__init__.py
 .harness/generators/_common.py
 .harness/generators/extract_accessibility_inventory.py
@@ -113,6 +116,7 @@ docs/decisions/2026-04-26-introduce-q15-documentation-policy.md
 docs/decisions/2026-04-26-introduce-q16-logging-policy.md
 docs/decisions/2026-04-26-introduce-q17-error-handling-policy.md
 docs/decisions/2026-04-26-introduce-q19-typecheck-policy.md
+docs/decisions/2026-04-27-points-2-and-4.md
 docs/decisions/2026-04-27-sync-harness-tag-verification.md
 docs/decisions/_TEMPLATE.md
 docs/plans/2026-04-26-ai-harness.md
@@ -330,7 +334,6 @@ tests/harness/generators/test_h22_backend_generators.py
 tests/harness/generators/test_h23_crossstack_generators.py
 tests/harness/generators/test_h24_h25_generators.py
 tests/harness/generators/test_run_harness_regen.py
-tests/harness/test_harness_conventions.py
 tests/harness/test_init_harness.py
 tests/harness/test_loader.py
 tests/harness/test_pre_commit_install.py

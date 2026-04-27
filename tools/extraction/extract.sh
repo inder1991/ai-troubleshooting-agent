@@ -52,6 +52,31 @@ git filter-repo --paths-from-file "${MANIFEST}" --force
 echo "[INFO] moving ${MIRROR} → ${TARGET}"
 mv "${MIRROR}" "${TARGET}"
 
+# Post-extract cleanup: filter-repo's --paths-from-file is INCLUDE-only, so
+# keeping .harness/ also keeps stale generated/*.json + baselines/*.json that
+# were committed in the source. The consumer regenerates these via
+# `make harness` + `make harness-baseline-refresh`. Drop them now so the
+# extracted repo ships with empty generated/ + baselines/ (just the README).
+echo "[INFO] cleaning consumer-specific artifacts from ${TARGET}"
+find "${TARGET}/.harness/generated" -name '*.json' -type f -delete 2>/dev/null || true
+find "${TARGET}/.harness/baselines" -name '*.json' -type f -delete 2>/dev/null || true
+# Make sure the generated/ README survives (it warns "DO NOT EDIT").
+if [[ ! -f "${TARGET}/.harness/generated/README.md" && -f "${REPO_ROOT}/.harness/generated/README.md" ]]; then
+    mkdir -p "${TARGET}/.harness/generated"
+    cp "${REPO_ROOT}/.harness/generated/README.md" "${TARGET}/.harness/generated/README.md"
+fi
+cd "${TARGET}"
+git add -A
+if ! git diff --cached --quiet; then
+    git -c user.email="harness@local" -c user.name="harness extraction" \
+        commit -m "chore: drop consumer-specific generated/baseline JSONs
+
+The standalone harness ships with empty .harness/generated/ + .harness/baselines/
+(just the README placeholders). Each consumer regenerates these via
+\`make harness\` + \`make harness-baseline-refresh\` against its own code."
+fi
+cd "${REPO_ROOT}"
+
 echo "[INFO] seeding standalone README at ${TARGET}/README.md"
 cat > "${TARGET}/README.md" <<'EOF'
 # ai-harness

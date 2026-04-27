@@ -46,14 +46,23 @@ EXCLUDE_TOKENS = (
     ".venv",
     "node_modules",
     ".pytest_cache",
-    "/.harness/baselines/",
-    "/.harness/generated/",
     # tests/harness/configs/ — every file under here asserts DebugDuck-specific
     # tooling/config (alembic, vitest thresholds, gitleaks, observability tree,
     # specific deps, etc.). The standalone harness consumer wires up its own
     # tooling; these tests would all fail in any other repo.
     "/tests/harness/configs/",
 )
+
+
+def _is_consumer_specific_artifact(rel_path: str) -> bool:
+    """Drop ONLY the consumer-specific artifacts under baselines/ and
+    generated/ — i.e. the per-rule .json files. The README + _TICKETS.md
+    files in those directories DO ship (they're documentation, not data)."""
+    if rel_path.startswith(".harness/baselines/") and rel_path.endswith(".json"):
+        return True
+    if rel_path.startswith(".harness/generated/") and rel_path.endswith(".json"):
+        return True
+    return False
 
 # Explicit per-file excludes (in addition to EXCLUDE_TOKENS).
 # Use full project-relative paths so the exclusion is unambiguous.
@@ -85,6 +94,8 @@ def collect() -> list[str]:
                 continue
             rel = str(f.relative_to(REPO_ROOT))
             if rel in EXCLUDE_FILES:
+                continue
+            if _is_consumer_specific_artifact(rel):
                 continue
             out.add(rel)
     return sorted(out)
