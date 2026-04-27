@@ -105,6 +105,12 @@ EOF
 echo "[INFO] copying release notes template → ${TARGET}/RELEASES.md"
 cp "${REPO_ROOT}/tools/init_harness_templates/RELEASES.md" "${TARGET}/RELEASES.md"
 
+if [[ -f "${REPO_ROOT}/tools/init_harness_templates/keys.md" ]]; then
+    echo "[INFO] copying signing-key reference → ${TARGET}/docs/keys.md"
+    mkdir -p "${TARGET}/docs"
+    cp "${REPO_ROOT}/tools/init_harness_templates/keys.md" "${TARGET}/docs/keys.md"
+fi
+
 cd "${TARGET}"
 git add README.md RELEASES.md
 git -c user.email="harness@local" -c user.name="harness extraction" \
