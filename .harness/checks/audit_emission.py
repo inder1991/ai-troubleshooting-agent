@@ -23,9 +23,9 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline  # noqa: E402
+from _common import emit, load_baseline, spine_paths  # noqa: E402
 
-DEFAULT_ROOTS = (REPO_ROOT / "backend" / "src" / "storage",)
+DEFAULT_ROOTS = spine_paths("backend_storage", ("backend/src/storage",))
 EXCLUDE = (
     "__pycache__", ".venv", "/venv/", "node_modules",
     "tests/harness/fixtures", "site-packages", ".git", ".pytest_cache",

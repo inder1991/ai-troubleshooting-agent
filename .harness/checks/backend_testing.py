@@ -35,9 +35,9 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline  # noqa: E402
+from _common import emit, load_baseline, spine_paths  # noqa: E402
 
-DEFAULT_ROOTS = (REPO_ROOT / "backend",)
+DEFAULT_ROOTS = spine_paths("backend_src", ("backend/src",)) + spine_paths("backend_tests", ("backend/tests",))
 EXCLUDE = (
     "__pycache__", ".venv", "/venv/", "node_modules",
     "tests/harness/fixtures", "site-packages", ".git", ".pytest_cache",
@@ -185,7 +185,7 @@ def _scan_source_file(path: Path, virtual: str, tree: ast.AST,
     errors = 0
     if _is_learning_source(virtual):
         stem = path.stem
-        repo_test = REPO_ROOT / "backend" / "tests" / "learning"
+        repo_test = (spine_paths("backend_tests_learning", ("backend/tests/learning",))[0])
         candidates = list(repo_test.glob(f"test_{stem}*.py")) if repo_test.exists() else []
         ok = False
         for cand in candidates:
@@ -205,7 +205,7 @@ def _scan_source_file(path: Path, virtual: str, tree: ast.AST,
 
     if _is_parser_source(virtual):
         stem = path.stem
-        any_test_root = REPO_ROOT / "backend" / "tests"
+        any_test_root = (spine_paths("backend_tests", ("backend/tests",))[0])
         ok = False
         if any_test_root.exists():
             for cand in any_test_root.rglob(f"test_{stem}*.py"):
@@ -261,7 +261,7 @@ def scan(roots: Iterable[Path], pretend_path: str | None) -> int:
         # Cache: when scanning the live repo (or any dir containing backend/tests/),
         # collect hypothesis refs once across the canonical test roots.
         cached_refs: set[str] = set()
-        live_test_root = REPO_ROOT / "backend" / "tests"
+        live_test_root = (spine_paths("backend_tests", ("backend/tests",))[0])
         if live_test_root.exists() and root.is_dir() and (
             root == REPO_ROOT or root == REPO_ROOT / "backend"
             or live_test_root.is_relative_to(root) if hasattr(Path, "is_relative_to") else False

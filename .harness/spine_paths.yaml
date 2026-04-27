@@ -19,13 +19,29 @@ backend_api:
   - backend/src/api
 backend_models:
   - backend/src/models
+backend_models_api:
+  - backend/src/models/api
+backend_models_agent:
+  - backend/src/models/agent
 backend_storage:
   - backend/src/storage
+backend_storage_gateway:
+  - backend/src/storage/gateway.py
+backend_contracts:
+  - backend/src/contracts
+backend_learning_sidecars:
+  - backend/src/learning/sidecars
 backend_tests:
   - backend/tests
+backend_tests_learning:
+  - backend/tests/learning
+backend_pyproject:
+  - backend/pyproject.toml
 frontend_src:
   - frontend/src
 frontend_components_ui:
   - frontend/src/components/ui
 frontend_services_api:
   - frontend/src/services/api
+frontend_package_json:
+  - frontend/package.json

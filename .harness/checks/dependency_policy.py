@@ -30,7 +30,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline  # noqa: E402
+from _common import emit, load_baseline, spine_paths  # noqa: E402
 
 DEFAULT_POLICY = REPO_ROOT / ".harness" / "dependencies.yaml"
 SPINE_PREFIXES = (
@@ -234,11 +234,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
     parser.add_argument("--pretend-path", type=str)
     args = parser.parse_args(argv)
-    targets = list(args.target) if args.target else [
-        REPO_ROOT / "backend" / "pyproject.toml",
-        REPO_ROOT / "frontend" / "package.json",
-        REPO_ROOT / "backend" / "src",
-    ]
+    targets = list(args.target) if args.target else (
+        list(spine_paths("backend_pyproject", ("backend/pyproject.toml",)))
+        + list(spine_paths("frontend_package_json", ("frontend/package.json",)))
+        + list(spine_paths("backend_src", ("backend/src",)))
+    )
     return scan(targets, args.policy, args.pretend_path)
 
 

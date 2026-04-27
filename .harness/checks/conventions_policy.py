@@ -26,7 +26,7 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline  # noqa: E402
+from _common import emit, load_baseline, spine_paths  # noqa: E402
 
 DEFAULT_ROOTS = (REPO_ROOT,)
 EXCLUDE_FS = (
@@ -164,7 +164,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--target", type=Path, action="append")
     parser.add_argument("--pretend-path", type=str)
     args = parser.parse_args(argv)
-    roots = tuple(args.target) if args.target else (REPO_ROOT / "backend" / "src", REPO_ROOT / "frontend" / "src")
+    roots = tuple(args.target) if args.target else (
+        spine_paths("backend_src", ("backend/src",)) + spine_paths("frontend_src", ("frontend/src",))
+    )
     return scan(roots, args.pretend_path)
 
 

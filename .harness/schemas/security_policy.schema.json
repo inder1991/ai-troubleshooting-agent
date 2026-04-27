@@ -2,5 +2,24 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Q13 security policy",
   "type": "object",
-  "additionalProperties": true
+  "additionalProperties": false,
+  "required": ["auth_dependency_names", "auth_decorator_names", "rate_limit_exempt", "csrf_exempt"],
+  "properties": {
+    "auth_dependency_names": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "auth_decorator_names": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "rate_limit_exempt": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Z]+:.+$"}
+    },
+    "csrf_exempt": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Z]+:.+$"}
+    }
+  }
 }

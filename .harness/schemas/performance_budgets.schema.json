@@ -2,5 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Q12 performance budgets",
   "type": "object",
-  "additionalProperties": true
+  "additionalProperties": false,
+  "required": ["version", "hard"],
+  "properties": {
+    "version": {"type": "integer", "minimum": 1},
+    "hard": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "agent_budgets": {"type": "object", "additionalProperties": true},
+        "database": {"type": "object", "additionalProperties": true},
+        "frontend_bundle": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "soft": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
 }

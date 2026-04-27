@@ -2,5 +2,20 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Q14 accessibility policy",
   "type": "object",
-  "additionalProperties": true
+  "additionalProperties": false,
+  "required": ["incident_critical", "axe_rules_disabled", "soft_warn"],
+  "properties": {
+    "incident_critical": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "axe_rules_disabled": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "soft_warn": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
 }

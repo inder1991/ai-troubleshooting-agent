@@ -20,12 +20,12 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline  # noqa: E402
+from _common import emit, load_baseline, spine_paths  # noqa: E402
 
 DEFAULT_ROOTS = (
-    REPO_ROOT / "backend" / "src" / "models" / "api",
-    REPO_ROOT / "backend" / "src" / "models" / "agent",
-    REPO_ROOT / "backend" / "src" / "learning" / "sidecars",
+    spine_paths("backend_models_api", ("backend/src/models/api",))
+    + spine_paths("backend_models_agent", ("backend/src/models/agent",))
+    + spine_paths("backend_learning_sidecars", ("backend/src/learning/sidecars",))
 )
 EXCLUDE = (
     "__pycache__", ".venv", "/venv/", "node_modules",

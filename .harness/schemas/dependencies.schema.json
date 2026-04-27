@@ -2,19 +2,34 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Q11 dependency policy",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
+  "required": ["version", "spine_paths", "whitelist", "blacklist", "audit"],
   "properties": {
-    "python": {
+    "version": {"type": "integer", "minimum": 1},
+    "spine_paths": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"type": "string", "minLength": 1}
+      }
+    },
+    "whitelist": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"type": "string", "minLength": 1}
+      }
+    },
+    "blacklist": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"type": "string", "minLength": 1}
+      }
+    },
+    "audit": {
       "type": "object",
       "additionalProperties": true
-    },
-    "npm": {
-      "type": "object",
-      "additionalProperties": true
-    },
-    "global_blacklist": {
-      "type": "array",
-      "items": {"type": "string"}
     }
   }
 }

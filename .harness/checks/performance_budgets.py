@@ -26,7 +26,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / ".harness/checks"))
 
-from _common import emit, load_baseline  # noqa: E402
+from _common import emit, load_baseline, spine_paths  # noqa: E402
 
 DEFAULT_BUDGETS = REPO_ROOT / ".harness" / "performance_budgets.yaml"
 COST_HINT_FIELDS = ("tool_calls_max", "tokens_max", "wall_clock_max_ms")
@@ -182,10 +182,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--budgets", type=Path, default=DEFAULT_BUDGETS)
     parser.add_argument("--pretend-path", type=str)
     args = parser.parse_args(argv)
-    targets = list(args.target) if args.target else [
-        REPO_ROOT / "backend" / "src" / "contracts",
-        REPO_ROOT / "backend" / "src" / "storage" / "gateway.py",
-    ]
+    targets = list(args.target) if args.target else (
+        list(spine_paths("backend_contracts", ("backend/src/contracts",)))
+        + list(spine_paths("backend_storage_gateway", ("backend/src/storage/gateway.py",)))
+    )
     return scan(targets, args.budgets, args.pretend_path)
 
 
