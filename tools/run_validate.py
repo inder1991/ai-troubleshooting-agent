@@ -7,31 +7,139 @@ H-14: single contract. Invokes lint + typecheck + every script in
 per H-16 / H-23.
 
 H-17: fast tier must run in < 30 s; tests are deferred to --full.
+
+Point #25 — every [ERROR] emitted by a check during this run is appended
+to .harness/.failure-log.jsonl with timestamp + commit + session UUID +
+host. The log gives the AI (and humans) trend visibility — "this rule
+fired 47 times this week" — without any API spend. The log is gitignored
+(per-machine telemetry); rotation kicks in at 10 MB.
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
+import json
+import os
+import re
 import shutil
+import socket
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 from typing import Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CHECKS_DIR = REPO_ROOT / ".harness/checks"
 
+# Point #25 — rolling failure log.
+FAILURE_LOG_PATH = REPO_ROOT / ".harness" / ".failure-log.jsonl"
+FAILURE_LOG_MAX_BYTES = 10 * 1024 * 1024  # 10 MB rotation threshold
+ERROR_LINE_RE = re.compile(
+    r'^\[ERROR\]\s+file=(?P<file>\S+?):(?P<line>\d+)\s+rule=(?P<rule>\S+)'
+)
+
+# Set once per process so every log line in a run shares one session id.
+_SESSION_ID = uuid.uuid4().hex[:12]
+_SESSION_HOST = socket.gethostname()
+
 
 def _have(cmd: str) -> bool:
+    """True if `cmd` is on PATH."""
     return shutil.which(cmd) is not None
 
 
+def _current_commit() -> str | None:
+    """Return current HEAD short SHA, or None if outside a git repo / no git."""
+    if not _have("git"):
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=REPO_ROOT, capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip() or None
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    return None
+
+
+def _rotate_failure_log() -> None:
+    """If FAILURE_LOG_PATH exceeds its size cap, rename to .1, delete any older .1."""
+    if not FAILURE_LOG_PATH.exists():
+        return
+    try:
+        if FAILURE_LOG_PATH.stat().st_size <= FAILURE_LOG_MAX_BYTES:
+            return
+    except OSError:
+        return
+    rotated = FAILURE_LOG_PATH.with_suffix(FAILURE_LOG_PATH.suffix + ".1")
+    if rotated.exists():
+        try:
+            rotated.unlink()
+        except OSError:
+            pass
+    try:
+        FAILURE_LOG_PATH.rename(rotated)
+    except OSError:
+        pass
+
+
+def _append_failure_log(rule: str, file: str, line: int, commit: str | None) -> None:
+    """Append one structured failure entry to .harness/.failure-log.jsonl."""
+    entry = {
+        "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "rule": rule,
+        "file": file,
+        "line": line,
+        "commit": commit,
+        "host": _SESSION_HOST,
+        "session": _SESSION_ID,
+    }
+    try:
+        FAILURE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with FAILURE_LOG_PATH.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, sort_keys=True) + "\n")
+    except OSError:
+        # Log failure must never abort validate-fast.
+        pass
+
+
 def _run(label: str, cmd: Sequence[str], cwd: Path = REPO_ROOT) -> int:
-    """Run a subprocess; stream its stdout/stderr; return exit code."""
+    """Run a subprocess; stream its stdout/stderr; return exit code.
+
+    For check invocations we ALSO capture stdout, parse [ERROR] lines, and
+    append to .harness/.failure-log.jsonl. Lint/typecheck use the older
+    streaming path (their output isn't H-16-conformant).
+    """
     print(f"\n[VALIDATE] {label} → {' '.join(cmd)}")
     start = time.monotonic()
-    result = subprocess.run(cmd, cwd=cwd)
+    is_check = label.startswith("check:")
+    if is_check:
+        # Capture stdout to parse for errors; re-print verbatim so the user
+        # sees the same output they would have without the failure log.
+        result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+        if result.stdout:
+            sys.stdout.write(result.stdout)
+            sys.stdout.flush()
+        if result.stderr:
+            sys.stderr.write(result.stderr)
+            sys.stderr.flush()
+        commit = _current_commit()
+        for line in result.stdout.splitlines():
+            m = ERROR_LINE_RE.match(line)
+            if m:
+                _append_failure_log(
+                    rule=m.group("rule"),
+                    file=m.group("file"),
+                    line=int(m.group("line")),
+                    commit=commit,
+                )
+    else:
+        result = subprocess.run(cmd, cwd=cwd)
     elapsed = time.monotonic() - start
     print(f"[VALIDATE] {label} exited {result.returncode} ({elapsed:.1f}s)")
     return result.returncode
@@ -95,6 +203,7 @@ def run_custom_checks(full: bool) -> int:
     if not CHECKS_DIR.is_dir():
         return 0
     overall = 0
+    _rotate_failure_log()
     for script in sorted(CHECKS_DIR.glob("*.py")):
         if script.name in ("__init__.py", "_common.py"):
             continue

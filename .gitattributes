@@ -1,0 +1,29 @@
+# Point #29 — normalize line endings to LF on every checkout regardless of OS.
+#
+# Without this, Windows checkout converts LF→CRLF on text files; the
+# determinism gate (`make harness` byte-identical re-run) breaks because
+# generated JSONs flip CRLF↔LF every commit. Mac/linux contributors then
+# see noise diffs from Windows commits.
+
+# Default: text files normalized to LF on checkout.
+* text=auto eol=lf
+
+# Generated JSON / YAML / Python / shell — explicit LF (overrides any
+# user-level git config that might force CRLF).
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.py   text eol=lf
+*.sh   text eol=lf
+*.md   text eol=lf
+*.toml text eol=lf
+
+# Binary blobs — never normalize (would corrupt them).
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.gz   binary
+*.zip  binary

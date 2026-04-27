@@ -24,5 +24,9 @@ data/*.db-shm
 # Claude Code harness runtime state
 .claude/scheduled_tasks.lock
 .claude/worktrees/
+
+# Point #25 — rolling failure log (per-machine telemetry)
+.harness/.failure-log.jsonl
+.harness/.failure-log.jsonl.*
 deploy/helm/ai-troubleshooting/charts/*.tgz
 deploy/helm/ai-troubleshooting/tmpcharts-*/

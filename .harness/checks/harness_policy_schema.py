@@ -43,6 +43,7 @@ POLICY_YAML_NAMES = {
     "rule_coverage_exemptions.yaml": "rule_coverage_exemptions",
     "typecheck_policy.yaml": "typecheck_policy",
     "spine_paths.yaml": "spine_paths",
+    "HARNESS_CARD.yaml": "HARNESS_CARD",
 }
 
 

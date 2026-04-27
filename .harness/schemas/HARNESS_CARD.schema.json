@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HarnessCard manifest (#23)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name", "version", "upstream", "license", "maintainers",
+    "control", "agency", "runtime", "coverage",
+    "distribution", "consumer_fit"
+  ],
+  "properties": {
+    "name": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+    "upstream": {"type": "string", "format": "uri"},
+    "license": {"type": "string", "minLength": 1},
+    "maintainers": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^@.+"}
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["static_checks", "enforcement_layers", "rule_taxonomy"],
+      "properties": {
+        "static_checks": {"type": "integer", "minimum": 0},
+        "enforcement_layers": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "rule_taxonomy": {"type": "object"}
+      }
+    },
+    "agency": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["ai_session_context", "context_budget_default_kb"],
+      "properties": {
+        "ai_session_context": {"type": "string"},
+        "context_budget_default_kb": {"type": "integer", "minimum": 1}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["covered", "not_covered"],
+      "properties": {
+        "covered": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "not_covered": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bootstrap_command", "sync_command", "pin_file", "signed_releases"],
+      "properties": {
+        "bootstrap_command": {"type": "string"},
+        "sync_command": {"type": "string"},
+        "pin_file": {"type": "string"},
+        "signed_releases": {"type": "boolean"},
+        "signing_key": {"type": "string"}
+      }
+    },
+    "consumer_fit": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    }
+  }
+}

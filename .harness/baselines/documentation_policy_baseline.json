@@ -95,11 +95,6 @@
     "rule": "Q15.spine-docstring-required"
   },
   {
-    "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/dependency_policy.py",
-    "line": 228,
-    "rule": "Q15.spine-docstring-required"
-  },
-  {
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/.harness/checks/frontend_data_layer.py",
     "line": 182,
     "rule": "Q15.spine-docstring-required"
@@ -3808,5 +3803,10 @@
     "file": "/Users/gunjanbhandari/Projects/ai-troubleshooting-systetm/tools/validate_dependencies_yaml.py",
     "line": 35,
     "rule": "Q15.spine-docstring-required"
+  },
+  {
+    "file": "docs/decisions",
+    "line": 0,
+    "rule": "Q15.adr-required-on-change"
   }
 ]

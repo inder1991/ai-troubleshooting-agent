@@ -1,0 +1,77 @@
+# Point #23 — HarnessCard.
+#
+# Machine-readable manifest declaring at-a-glance what this harness covers.
+# Inspired by the CAR (Control / Agency / Runtime) decomposition paper
+# in awesome-harness-engineering. A consumer evaluating adoption can answer
+# "does it cover X?" by reading this single file instead of reading 29
+# checks + 20 generators + 10 schemas.
+#
+# Bump `version` in the same commit as `.harness-version` on every release.
+
+name: ai-harness
+version: 1.0.4
+upstream: https://github.com/inder1991/ai-harness
+license: MIT
+maintainers:
+  - "@inder"
+
+# CAR axes — what slice of the harness layer this implements.
+control:
+  static_checks: 29
+  enforcement_layers:
+    - pre-commit hook (tools/install_pre_commit.sh)
+    - CI workflow (.github/workflows/validate.yml)
+  rule_taxonomy:
+    Q-decisions: "Q1..Q19 (locked stack/style/security choices)"
+    H-rules: "H-1..H-26 (process + structural contracts)"
+
+agency:
+  ai_session_context: "tools/load_harness.py via SessionStart hook"
+  context_budget_default_kb: 32
+  context_budget_override: "--max-bytes flag (0 = unlimited)"
+  truth_files: "20 generators emit deterministic JSON to .harness/generated/"
+  consumer_overridable_paths: ".harness/spine_paths.yaml (17 roles)"
+
+runtime:
+  sandboxing: not_enforced
+  sandboxing_note: "delegated to Claude Code per-tool prompts; no harness-layer sandbox"
+  prompt_injection_mitigation: not_implemented
+  prompt_injection_note: "skip if harness-consumer repos handle untrusted input"
+  trace_logging: rolling_failure_log_only
+  trace_logging_note: ".harness/.failure-log.jsonl (no API calls; no eval suite)"
+
+# What the harness explicitly handles vs. what it deliberately doesn't.
+coverage:
+  covered:
+    - "rule discipline (29 deterministic AST/regex checks)"
+    - "policy schema validation (10 yamls all strict)"
+    - "auto-derived inventories (20 generators with deterministic regen)"
+    - "session-start context loading with byte budget"
+    - "tag-signature verification on harness-sync"
+    - "consumer-overridable spine paths"
+    - "grandfathered baselines for legacy code"
+    - "rolling failure log for trend visibility (zero API cost)"
+  not_covered:
+    - "evals + observability beyond rule firings (deliberate — no API cost)"
+    - "browser/runtime validation in AI fix loop"
+    - "prompt injection mitigation"
+    - "sandbox / write-path allowlist"
+    - "long-running session checkpoints + handoff artifacts"
+    - "spec-driven development primitives"
+    - "agent-budget runtime enforcement (only declarations exist)"
+
+distribution:
+  bootstrap_command: "python3 tools/init_harness.py --target <path> --owner <handle> --tech-stack <python|typescript|polyglot> --from-git latest"
+  sync_command: "python3 tools/sync_harness.py"
+  pin_file: ".harness-version"
+  signed_releases: true
+  signing_key: "Ed25519 73A7AF8F04F40EC9 (see docs/keys.md)"
+
+# Suitable consumer profiles.
+consumer_fit:
+  monorepo_python_typescript: native
+  python_only: "supported via .harness/spine_paths.yaml override"
+  typescript_only: "supported via .harness/spine_paths.yaml override"
+  multi_repo: "supported (each repo pins its own .harness-version)"
+  untrusted_input_processing: "NOT recommended (no prompt-injection / sandbox)"
+  long_running_autonomous_agents: "limited (no checkpoint/handoff format)"

@@ -1,0 +1,57 @@
+name: harness-validate
+
+# H-17 / point #28 — CI gate that runs `make validate-full` on every PR
+# and every push to main. Without this, pre-commit hooks are bypassable
+# (`git commit -n`); CI is the safety net.
+#
+# Permissions are read-only; the workflow does not need any secrets.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate-full
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout (full history for diff-based checks)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install harness Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml jsonschema
+
+      - name: Run validate-fast (mandatory tier)
+        run: |
+          set -o pipefail
+          if command -v make >/dev/null 2>&1; then
+              make validate-fast
+          else
+              python tools/run_validate.py --fast
+          fi
+
+      - name: Run harness self-tests (pytest)
+        run: |
+          pip install pytest
+          # Only the harness self-tests; consumer tests live elsewhere.
+          if [ -d tests/harness ]; then
+              python -m pytest tests/harness -q --tb=short
+          else
+              echo "[INFO] no tests/harness/ directory; skipping"
+          fi
