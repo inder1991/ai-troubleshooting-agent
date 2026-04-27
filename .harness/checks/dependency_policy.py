@@ -184,10 +184,12 @@ def scan(targets: list[Path], policy_path: Path, pretend_path: str | None) -> in
     total_errors = 0
     for target in targets:
         if not target.exists():
-            emit("ERROR", target, "harness.target-missing",
-                 f"target does not exist: {target}",
-                 "pass an existing path", line=0)
-            return 2
+            # Silent skip: a default target may not exist in every consumer
+            # (e.g. JS-only or Python-only projects miss the other manifest).
+            # Explicit `--target` to a non-existent path still fails (handled
+            # by `argparse` not finding the file? — no, argparse accepts
+            # any Path; that's the consumer's mistake to surface elsewhere).
+            continue
         files: list[tuple[Path, str]]
         if target.is_file():
             virtual = pretend_path or (

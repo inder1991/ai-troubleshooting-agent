@@ -49,8 +49,8 @@ def _render(template: str, owner: str, tech_stack: str) -> str:
 
 
 def _copy_skeleton(src: Path, dest: Path, force: bool) -> int:
-    """Copy .harness/ skeleton + tools/* + .claude/settings.json into dest.
-    Returns number of files written."""
+    """Copy .harness/ skeleton + tools/* + .claude/settings.json +
+    tests/harness/ into dest. Returns number of files written."""
     written = 0
 
     # .harness/ tree (excluding any baselines that grew on the source repo;
@@ -90,6 +90,21 @@ def _copy_skeleton(src: Path, dest: Path, force: bool) -> int:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         if not out_path.exists() or force:
             shutil.copy2(claude_settings_src, out_path)
+            written += 1
+
+    # tests/harness/ — needed so H-24 (harness_fixture_pairing) and the
+    # harness self-tests have their fixtures + helpers in the consumer repo.
+    tests_src = src / "tests" / "harness"
+    if tests_src.exists():
+        for source in tests_src.rglob("*"):
+            if not source.is_file():
+                continue
+            rel = source.relative_to(src)
+            out_path = dest / rel
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            if out_path.exists() and not force:
+                continue
+            shutil.copy2(source, out_path)
             written += 1
 
     return written
