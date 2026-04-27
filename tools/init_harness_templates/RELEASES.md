@@ -1,5 +1,33 @@
 # Releases
 
+## v1.1.1 — Patch on the v1.1.0 hardening batch (signed)
+
+Closes the four P0 regressions surfaced by the post-v1.1.0 audit
+(`docs/plans/2026-04-27-harness-sdet-audit.md`):
+
+- **B7** — `tools/sign_release.sh` no longer queries `--global`
+  user.signingkey; uses git's standard local→global→system resolution
+  so the v1.1.0 `setup_signing.sh --local` default flows through to
+  release time.
+- **B8** — `.github/workflows/validate.yml` runs `make validate-full`
+  instead of `make validate-fast`. The fast tier was silently skipping
+  six enforcers (output_format_conformance, backend_testing,
+  frontend_testing, backend_async_correctness, backend_db_layer,
+  typecheck_policy) on every PR. Step timeout bumped 10→20 min for the
+  full tier.
+- **B9** — `init_harness._resolve_latest_tag` parses tags as semver
+  tuples instead of lexical sort. Lexical sort ranks v1.10.0 below
+  v1.2.0; once the harness crosses v1.10 the bug would have pinned a
+  stale ref. Adds `timeout=30` to the underlying `git ls-remote`
+  (partial B13).
+- **B10** — `_rotate_failure_log` re-checks size and renames under
+  `fcntl.LOCK_EX`. B2's lock covered append, not rotate; concurrent
+  validate-fast runs could double-rename onto `.1` and clobber the
+  first rotation's bytes. 10/10 stress runs pass.
+
+306+/306+ harness tests pass after the fixes; new unit tests added
+for each P0.
+
 ## v1.1.0 — Production hardening (signed) — **breaking baseline format**
 
 P0 bugs from the SDET production-readiness audit. **Bumps minor** because
