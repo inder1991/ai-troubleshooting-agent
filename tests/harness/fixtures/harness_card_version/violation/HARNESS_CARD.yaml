@@ -1,0 +1,3 @@
+# Violation: card says 1.0.4 but pin says v1.2.0 — Q21.harness-card-version-mismatch.
+name: ai-harness
+version: 1.0.4

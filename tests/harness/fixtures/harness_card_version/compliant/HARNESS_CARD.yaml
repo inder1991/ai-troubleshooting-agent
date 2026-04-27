@@ -1,0 +1,3 @@
+# Compliant: card version matches the .harness-version pin (1.0.4 / v1.0.4).
+name: ai-harness
+version: 1.0.4
