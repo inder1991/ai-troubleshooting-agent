@@ -122,6 +122,18 @@ git add README.md RELEASES.md
 git -c user.email="harness@local" -c user.name="harness extraction" \
     commit -m "docs: standalone repo README + RELEASES.md + bootstrap quickstart"
 
+# B17 (v1.2.0) — smoke-test the carved repo BEFORE leaving the function.
+# A broken extraction (missing file, manifest skew, non-importable check)
+# previously shipped unnoticed because extract.sh exited 0 after the carve
+# commit. Now the script aborts with exit 4 if any harness self-test fails.
+echo "[INFO] smoke-testing extracted repo (B17)"
+if ! python3 -m pytest tests/harness -q --tb=short -x; then
+    echo "[ERROR] extracted repo failed its self-tests; aborting" >&2
+    echo "        Inspect ${TARGET} manually before re-running." >&2
+    exit 4
+fi
+cd "${REPO_ROOT}"
+
 echo
 echo "[INFO] extraction complete: ${TARGET}"
 echo "[INFO] $(git log --oneline | wc -l | tr -d ' ') commits in extracted history"
