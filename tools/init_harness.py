@@ -95,6 +95,15 @@ def _copy_skeleton(src: Path, dest: Path, force: bool) -> int:
             shutil.copy2(claude_settings_src, out_path)
             written += 1
 
+    # B11 (v1.2.0) — .gitattributes (eol=lf) protects make-harness
+    # byte-deterministic regen on Windows checkouts.
+    gitattrs_src = src / ".gitattributes"
+    if gitattrs_src.exists():
+        out_path = dest / ".gitattributes"
+        if not out_path.exists() or force:
+            shutil.copy2(gitattrs_src, out_path)
+            written += 1
+
     # tests/harness/ — needed so H-24 (harness_fixture_pairing) and the
     # harness self-tests have their fixtures + helpers in the consumer repo.
     tests_src = src / "tests" / "harness"
