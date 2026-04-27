@@ -4,6 +4,11 @@ name: harness-validate
 # and every push to main. Without this, pre-commit hooks are bypassable
 # (`git commit -n`); CI is the safety net.
 #
+# B8 (v1.1.1): the workflow previously ran `validate-fast`, which silently
+# skipped FULL_ONLY_CHECKS (output_format_conformance, backend_testing,
+# frontend_testing, backend_async_correctness, backend_db_layer) plus
+# typecheck_policy. CI now runs the full tier with a 20-min step budget.
+#
 # Permissions are read-only; the workflow does not need any secrets.
 
 on:
@@ -18,7 +23,7 @@ jobs:
   validate:
     name: validate-full
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout (full history for diff-based checks)
@@ -37,13 +42,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyyaml jsonschema
 
-      - name: Run validate-fast (mandatory tier)
+      - name: Run validate-full (mandatory tier — H-17)
         run: |
           set -o pipefail
           if command -v make >/dev/null 2>&1; then
-              make validate-fast
+              make validate-full
           else
-              python tools/run_validate.py --fast
+              python tools/run_validate.py --full
           fi
 
       - name: Run harness self-tests (pytest)
