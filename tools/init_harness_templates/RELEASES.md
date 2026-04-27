@@ -1,5 +1,41 @@
 # Releases
 
+## v1.0.2 — Hardening sweep (signed)
+
+First **signed** release. Consumers no longer need `--no-verify-tag`.
+
+Includes everything from v1.0.1 plus the awesome-harness audit fixes:
+
+- **`load_harness` budget cap** (point 1). New `--max-bytes` flag (default 32 KB)
+  caps total emitted bytes. Mandatory tier (root + policies) always emits;
+  larger files drop with `[TRUNCATED] <path>` pointers the AI can `cat`. Also
+  fixes the long-standing argparse-crash on no-target invocation (which is
+  what the SessionStart hook does).
+- **GPG signing infrastructure** (point 5). New `tools/setup_signing.sh` +
+  `tools/sign_release.sh`. v1.0.2 is signed with key `73A7AF8F04F40EC9`
+  (`ai-harness signer`). Public key + import instructions live at
+  `docs/keys.md`.
+- **Tier 2 cleanup** (8 correctness/quality fixes):
+  - `extract_outbound_http_inventory` 1609 → 32 callsites via receiver-chain analysis
+  - `extract_dependency_inventory` regex → tomllib (handles multi-line specs + extras)
+  - 3 most-touched policy schemas tightened (logging, error_handling, documentation)
+  - `security_policy_b` skips per-route CsrfProtect when global CSRF middleware present
+  - `.harness/spine_paths.yaml` mechanism for consumer-overridable spine paths (PoC migration)
+  - `harness_rule_coverage` strips ` ``` ` blocks + inline `code` before regex
+  - `refresh_baselines` warns on baseline growth + atomic per-check writes
+
+## v1.0.1 — Maintenance
+
+Three harness-engineering hardening fixes:
+
+- Stripped DebugDuck-specific tests from carve (218/218 self-tests now green)
+- `_session_start_hook.sh` surfaces `load_harness.py` failures with
+  `[HARNESS_WARN]` instead of silent degradation
+- `sync_harness.py` verifies signed git tags (`--no-verify-tag` escape hatch)
+
+`extract.sh` also strips stale `.harness/{baselines,generated}/*.json` (consumer
+regenerates) but preserves the README + `_TICKETS.md` documentation.
+
 ## v1.0.0 — initial GA
 
 Seven-sprint substrate for AI-assisted development:
