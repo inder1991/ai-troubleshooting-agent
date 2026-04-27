@@ -1,5 +1,24 @@
 # Releases
 
+## v1.0.3 — Tier 2 completion (signed)
+
+Closes the Tier 2 partial completions from v1.0.2:
+
+- **Every check now resolves spine paths via `.harness/spine_paths.yaml`.**
+  14 module-level migrations + 5 inline migrations. Adds 9 new roles
+  (backend_models_api, backend_models_agent, backend_storage_gateway,
+  backend_contracts, backend_learning_sidecars, backend_tests_learning,
+  backend_pyproject, frontend_package_json, plus existing). Non-monorepo
+  / Python-only / JS-only consumers can adopt the harness with one
+  `spine_paths.yaml` override — no check forks needed.
+- **5 remaining policy schemas tightened** to `additionalProperties: false`
+  with explicit `required` arrays, type constraints, and pattern
+  constraints (e.g. `^[A-Z]+:.+$` for `verb:path` exempt entries).
+  Schema typos in policy yamls now fail fast at pre-commit.
+
+145/145 check tests pass; harness_policy_schema clean against all
+9 policy yamls.
+
 ## v1.0.2 — Hardening sweep (signed)
 
 First **signed** release. Consumers no longer need `--no-verify-tag`.
