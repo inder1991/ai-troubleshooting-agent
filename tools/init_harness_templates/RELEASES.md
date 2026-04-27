@@ -1,5 +1,23 @@
 # Releases
 
+## v1.0.4 — Enforcement + telemetry batch (signed)
+
+Four awesome-harness audit follow-ups, all $0 / no API spend:
+
+- **CI workflow** — `.github/workflows/validate.yml` runs `make validate-full`
+  on every PR + push to main. Closes the `git commit -n` bypass loophole.
+- **`.gitattributes`** — `eol=lf` on all text extensions; prevents Windows
+  checkout from breaking the `make harness` byte-deterministic regen gate.
+- **HarnessCard** — `.harness/HARNESS_CARD.yaml` declares at-a-glance what
+  this harness covers using the CAR (Control / Agency / Runtime) decomposition.
+  Includes `coverage.covered` + `coverage.not_covered` (honest about gaps),
+  `consumer_fit` profiles, distribution commands. Schema-validated.
+- **Rolling failure log** — `tools/run_validate.py` appends every `[ERROR]`
+  to `.harness/.failure-log.jsonl` with timestamp + commit + session UUID +
+  host. 10 MB rotation cap, gitignored. Gives the AI trend visibility ("rule
+  X fired 47 times this week") with zero API cost — closest thing to "evals"
+  we can build for free.
+
 ## v1.0.3 — Tier 2 completion (signed)
 
 Closes the Tier 2 partial completions from v1.0.2:
