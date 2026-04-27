@@ -228,6 +228,7 @@ def scan(targets: list[Path], policy_path: Path, pretend_path: str | None) -> in
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entrypoint: scan --target manifests against --policy."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", type=Path, action="append")
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
