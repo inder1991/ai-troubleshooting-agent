@@ -110,35 +110,35 @@ def test_loader_default_budget_caps_output() -> None:
     )
 
 
-def test_loader_emits_truncated_pointer_when_over_budget(tmp_path: Path) -> None:
-    """Point 1 — files dropped due to budget appear as `[TRUNCATED] <path>`.
+def _stage_synthetic_repo(tmp_path: Path, payload_size: int) -> Path:
+    """Build a tiny self-contained repo under tmp_path with a single
+    generated/big.json of `payload_size` bytes, plus a copy of the
+    loader and its dependencies. Returns the path to the staged
+    loader script.
 
-    Builds a synthetic mini-repo in tmp_path with a deliberately-oversized
-    generated JSON, then invokes a copy of load_harness.py rooted at that
-    tmp_path. This isolates the test from whatever the live repo happens
-    to have under .harness/generated/ — including the standalone
-    ai-harness source repo where extract.sh wipes the directory and
-    nothing exceeds the budget.
+    Used by the budget-related tests so they don't depend on the
+    live repo's .harness/generated/ contents — the standalone
+    ai-harness source repo wipes that directory in extract.sh.
     """
+    import shutil
     fake_root = tmp_path / "repo"
     (fake_root / ".harness/generated").mkdir(parents=True)
     (fake_root / "tools").mkdir()
     (fake_root / "CLAUDE.md").write_text("# Synthetic root\n")
-    # 12 KB of payload — well over the 8 KB cap, so emission must
-    # truncate at least this one file.
-    big = {"payload": "x" * 12_000}
+    big = {"payload": "x" * payload_size}
     (fake_root / ".harness/generated/big.json").write_text(json.dumps(big))
-    # Copy the loader + its only first-party dependency into the fake
-    # tree so its REPO_ROOT (parents[1] of __file__) resolves to fake_root.
-    import shutil
     shutil.copy2(LOADER, fake_root / "tools/load_harness.py")
     shutil.copy2(REPO_ROOT / "tools/_common.py", fake_root / "tools/_common.py")
     (fake_root / "tools/__init__.py").write_text("")
+    return fake_root / "tools/load_harness.py"
 
+
+def test_loader_emits_truncated_pointer_when_over_budget(tmp_path: Path) -> None:
+    """Point 1 — files dropped due to budget appear as `[TRUNCATED] <path>`."""
+    loader = _stage_synthetic_repo(tmp_path, payload_size=12_000)
     result = subprocess.run(
-        [sys.executable, str(fake_root / "tools/load_harness.py"),
-         "--max-bytes", "8000"],
-        cwd=fake_root, capture_output=True, text=True,
+        [sys.executable, str(loader), "--max-bytes", "8000"],
+        cwd=loader.parent.parent, capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
     assert "[TRUNCATED]" in result.stdout, (
@@ -151,22 +151,32 @@ def test_loader_emits_truncated_pointer_when_over_budget(tmp_path: Path) -> None
     )
 
 
-def test_loader_unlimited_budget_includes_everything() -> None:
-    """Point 1 — --max-bytes 0 means no cap (CI agent mode)."""
+def test_loader_unlimited_budget_includes_everything(tmp_path: Path) -> None:
+    """Point 1 — --max-bytes 0 means no cap (CI agent mode).
+
+    Uses the same synthetic mini-repo so the test is independent of
+    live .harness/generated/ contents.
+    """
+    # Payload sized between the 32 KB cap and the unlimited mode so
+    # the cap truncates and unlimited doesn't.
+    loader = _stage_synthetic_repo(tmp_path, payload_size=40_000)
     capped = subprocess.run(
-        [sys.executable, str(LOADER), "--max-bytes", "32768"],
-        cwd=REPO_ROOT, capture_output=True, text=True,
+        [sys.executable, str(loader), "--max-bytes", "32768"],
+        cwd=loader.parent.parent, capture_output=True, text=True,
     )
     unlimited = subprocess.run(
-        [sys.executable, str(LOADER), "--max-bytes", "0"],
-        cwd=REPO_ROOT, capture_output=True, text=True,
+        [sys.executable, str(loader), "--max-bytes", "0"],
+        cwd=loader.parent.parent, capture_output=True, text=True,
     )
     assert capped.returncode == 0 and unlimited.returncode == 0
     assert len(unlimited.stdout) > len(capped.stdout), (
-        "unlimited mode should emit more bytes than the default cap"
+        f"unlimited ({len(unlimited.stdout)} bytes) must exceed "
+        f"capped ({len(capped.stdout)} bytes)"
     )
     # Unlimited mode emits no [TRUNCATED] pointers.
     assert "[TRUNCATED]" not in unlimited.stdout
+    # Capped mode does (the 40 KB synthetic file overflows 32 KB cap).
+    assert "[TRUNCATED]" in capped.stdout
 
 
 def test_loader_text_mode_emits_concatenated_block() -> None:
